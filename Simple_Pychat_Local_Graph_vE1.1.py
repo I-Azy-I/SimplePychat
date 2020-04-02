@@ -24,7 +24,7 @@ class Application:
             self.username="JUJU"
             self.ip_client="127.0.0.1"
             self.ip_server="127.0.0.1"
-            self.port_client=8888
+            self.port_client=0#ne se connecte à personne
             self.port_server=8887
         elif choix==2:
             self.username="MIMILE"
@@ -32,31 +32,33 @@ class Application:
             self.ip_server="127.0.0.1"
             self.port_client=8887
             self.port_server=8888
-        # elif choix==3:
-        #     self.username="Pedro"
-        #     self.ip_client="127.0.0.1"
-        #     self.ip_server="127.0.0.1"
-        #     self.port_client=8888
-        #     self.port_server=8889
-        # elif choix==4:
-        #     self.username="Polo"
-        #     self.ip_client="127.0.0.1"
-        #     self.ip_server="127.0.0.1"
-        #     self.port_client=8888
-        #     self.port_server=8886
-        # elif choix==5:
-        #     self.username="JCVD"
-        #     self.ip_client="127.0.0.1"
-        #     self.ip_server="127.0.0.1"
-        #     self.port_client=8886
-        #     self.port_server=8885
-        # else:
-        #     self.username="SIMPLE PYCHAT"
-        #     self.ip_client="127.0.0.1"
-        #     self.ip_server="127.0.0.1"
-        #     self.port_client=8888
-        #     self.port_server=8888
-        self.global_list_ports_servers.append(self.port_client)
+        elif choix==3:
+            self.username="Pedro"
+            self.ip_client="127.0.0.1"
+            self.ip_server="127.0.0.1"
+            self.port_client=8888
+            self.port_server=8889
+        elif choix==4:
+            self.username="Polo"
+            self.ip_client="127.0.0.1"
+            self.ip_server="127.0.0.1"
+            self.port_client=8888
+            self.port_server=8886
+
+        elif choix==5:
+            self.username="JCVD"
+            self.ip_client="127.0.0.1"
+            self.ip_server="127.0.0.1"
+            self.port_client=8886
+            self.port_server=8885
+        else:
+            self.username="SIMPLE PYCHAT"
+            self.ip_client="127.0.0.1"
+            self.ip_server="127.0.0.1"
+            self.port_client=8888
+            self.port_server=8888
+        if self. port_client!=0:
+            self.global_list_ports_servers.append(self.port_client)
         print(self.global_list_ports_servers)
 
     async def reception(self, reader, writer):
@@ -100,7 +102,8 @@ class Application:
                 await asyncio.sleep(0.01)
 
         elif type=="2":
-            self.global_list_ports_servers=message.split(",")
+            if message !="":
+                self.global_list_ports_servers.extend(message.split(","))
 
 
 
@@ -126,16 +129,17 @@ class Application:
 
     async def client(self):
         print(self.global_list_ports_servers)
-        while True:
-            mess_ini="1"+str(self.port_server) #ip deja string
-            try:
-                reader, writer = await asyncio.open_connection(self.ip_client, self.port_client)
-                writer.write(mess_ini.encode())
-                writer.close()
-                break
-            except ConnectionRefusedError:
-                print(f"Connection impossible à {self.port_client}")
-            await asyncio.sleep(1)
+        if self.port_client !=0:
+            while True:
+                mess_ini="1"+str(self.port_server) #ip deja string
+                try:
+                    reader, writer = await asyncio.open_connection(self.ip_client, self.port_client)
+                    writer.write(mess_ini.encode())
+                    writer.close()
+                    break
+                except ConnectionRefusedError:
+                    print(f"Connection impossible à {self.port_client}")
+                await asyncio.sleep(1)
         i=0
         while True:
             await asyncio.sleep(0.1)
