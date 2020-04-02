@@ -61,19 +61,52 @@ class Application:
             self.global_list_ports_servers.append(self.port_client)
         print(self.global_list_ports_servers)
 
+
+
+    async def send(self, message, destinataires, bool=False, blacklist=0):
+
+        if type(destinataires)==int:
+            try:
+                reader, writer = await asyncio.open_connection(self.ip_client, destinataires)
+                writer.write(message.encode())
+                writer.close()
+                if bool:
+                    return True
+
+            except ConnectionRefusedError:
+                print(f"Connection impossible à {destinataires}")
+                if bool:
+                    return False
+
+
+        elif type(destinataires)==list:
+            for i in range(len(destinataires)):
+                if destinataires[i] != blacklist:
+                    try:
+                        reader, writer = await asyncio.open_connection(self.ip_client, destinataires[i])
+                        writer.write(message.encode())
+                        writer.close()
+                        if bool:
+                            return True
+                    except ConnectionRefusedError:
+                        print(f"Connection impossible à {destinataires[i]}")
+                        if bool:
+                            return False
+        else:
+            print("Erreur fonction send: destinataires n'est ni un int ni une liste")
+
+
     async def reception(self, reader, writer):
         print(self.global_list_ports_servers)
         data = await reader.read(100) #serveur attend messages
         message = data.decode()         # décode message
         addr = writer.get_extra_info('peername')
+        writer.close() #ferme la connexion
         print(f"Serveur: Received {message!r} from {addr[0]}")
         type=message[:1]
         message=message[1:]
-
-
         if type=="0": #recois un message, ajoute à la listebox, si c'est un nouveau noeud il faut l'ajouter dans sa liste des noeuds connectés
             self.global_new_mess_listbox_message.append(message[4:])
-            writer.close() #ferme la connexion
             port=int(message[:4])
             if not port in self.global_list_ports_servers:
                 self.global_list_ports_servers.append(port)
@@ -91,19 +124,13 @@ class Application:
                 self.global_list_ports_servers.append(port)
 
             #historique des message doit etre ajouté ici
-            for i in range(5):
-                try: #envoie lien au nouveau noeud
-                    reader, writer = await asyncio.open_connection(self.ip_client, port)
-                    writer.write(("2"+str_global_list_ports_servers).encode())
-                    writer.close()
-                    break
-                except ConnectionRefusedError:
-                    print(f"Connection impossible à {self.port_client}")
-                await asyncio.sleep(0.01)
+
+                await self.send("2"+str_global_list_ports_servers,port)
 
         elif type=="2":
             if message !="":
-                self.global_list_ports_servers.extend(message.split(","))
+                self.global_list_ports_servers.extend([int(i) for i in message.split(",")])
+                print(self.global_list_ports_servers)
 
 
 
@@ -130,40 +157,27 @@ class Application:
     async def client(self):
         print(self.global_list_ports_servers)
         if self.port_client !=0:
-            while True:
+            bool=False
+            while not bool:
                 mess_ini="1"+str(self.port_server) #ip deja string
-                try:
-                    reader, writer = await asyncio.open_connection(self.ip_client, self.port_client)
-                    writer.write(mess_ini.encode())
-                    writer.close()
-                    break
-                except ConnectionRefusedError:
-                    print(f"Connection impossible à {self.port_client}")
+                bool=await self.send(mess_ini, self.port_client,True)
                 await asyncio.sleep(1)
         i=0
         while True:
             await asyncio.sleep(0.1)
             if self.if_button_clicked: #si le boutton est cliqué
                 self.if_button_clicked = False
-                message=f"{self.port_server}" + self.username + "> "+ self.string_var_entry_message #le message est ce qui est écrit dans l'interface
-                self.global_new_mess_listbox_message.append(message[4:])
-                t=0
-                while t<len(self.global_list_ports_servers):
-                    await asyncio.sleep(0.05)
-                    try:
-                        reader, writer = await asyncio.open_connection(self.ip_client, self.global_list_ports_servers[t])
-                        writer.write(message.encode())
+                message="0"+f"{self.port_server}" + self.username + "> "+ self.string_var_entry_message #le message est ce qui est écrit dans l'interface
+                self.global_new_mess_listbox_message.append(message[5:])
+                await self.send(message,self.global_list_ports_servers)
 
-                        writer.close()
-                    except ConnectionRefusedError:
-                        print(f"Connection impossible à {self.global_list_ports_servers[t]}")
-                    t=t+1
 
 
 
             if i<len(self.global_mess_received):
                 (message,port)=self.global_mess_received[i]
                 message=f"{self.port_server}" + message
+                await self.send(message,self.global_list_ports_servers,bool=False,blacklist=port)
                 t=0
                 while t<len(self.global_list_ports_servers):
                     await asyncio.sleep(0.05)
