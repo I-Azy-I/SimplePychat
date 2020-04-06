@@ -59,7 +59,6 @@ class Application:
             self.port_server=8888
         if self. port_client!=0:
             self.global_list_ports_servers.append(self.port_client)
-        print(self.global_list_ports_servers)
 
 
 
@@ -97,7 +96,6 @@ class Application:
 
 
     async def reception(self, reader, writer):
-        print(self.global_list_ports_servers)
         data = await reader.read(100) #serveur attend messages
         message = data.decode()         # décode message
         addr = writer.get_extra_info('peername')
@@ -119,7 +117,7 @@ class Application:
                 str_global_list_ports_servers=str(self.global_list_ports_servers[0])
             else :
                 node1,node2 =random.sample(self.global_list_ports_servers,k=2)
-                print(str(node1)+","+str(node2)) #pour ip pas besoin de str
+                str_global_list_ports_servers=(str(node1)+","+str(node2)) #pour ip pas besoin de str
             if not port in self.global_list_ports_servers:
                 self.global_list_ports_servers.append(port)
 
@@ -177,7 +175,7 @@ class Application:
             if i<len(self.global_mess_received):
                 (message,port)=self.global_mess_received[i]
                 message=f"{self.port_server}" + message
-                await self.send(message,self.global_list_ports_servers,bool=False,blacklist=port)
+                await self.send(message,self.global_list_ports_servers,bool=False, blacklist=port)
                 t=0
                 while t<len(self.global_list_ports_servers):
                     await asyncio.sleep(0.05)
