@@ -8,6 +8,8 @@
 import asyncio
 from tkinter import *
 import random
+import time
+from datetime import datetime
 
 class Application:
 
@@ -104,7 +106,7 @@ class Application:
         type=message[:1]
         message=message[1:]
         if type=="0": #recois un message, ajoute à la listebox, si c'est un nouveau noeud il faut l'ajouter dans sa liste des noeuds connectés
-            self.global_new_mess_listbox_message.append(message[4:])
+            self.global_new_mess_listbox_message.append((datetime.now().strftime('%H:%M:%S'))+" "+message[4:])
             port=int(message[:4])
             if not port in self.global_list_ports_servers:
                 self.global_list_ports_servers.append(port)
@@ -163,18 +165,20 @@ class Application:
         i=0
         while True:
             await asyncio.sleep(0.1)
-            if self.if_button_clicked: #si le boutton est cliqué
+            #si le boutton est cliqué
+            if self.if_button_clicked:
                 self.if_button_clicked = False
+
                 message="0"+f"{self.port_server}" + self.username + "> "+ self.string_var_entry_message #le message est ce qui est écrit dans l'interface
-                self.global_new_mess_listbox_message.append(message[5:])
+                self.global_new_mess_listbox_message.append((datetime.now().strftime('%H:%M:%S'))+" "+message[5:])
                 await self.send(message,self.global_list_ports_servers)
 
 
 
-
+            #redistribution
             if i<len(self.global_mess_received):
                 (message,port)=self.global_mess_received[i]
-                message=f"{self.port_server}" + message
+                message="0"+f"{self.port_server}" + message
                 await self.send(message,self.global_list_ports_servers,bool=False, blacklist=port)
                 t=0
                 while t<len(self.global_list_ports_servers):
@@ -199,7 +203,6 @@ class Application:
 
 
     async def interface(self): #création de l'interface
-        print(self.global_list_ports_servers)
         def fct_button_send():
             self.string_var_entry_message=var_entry_message.get()
             self.if_button_clicked=True
@@ -236,7 +239,7 @@ class Application:
 
 
     async def main(self):
-        print(self.global_list_ports_servers)
+
         await asyncio.gather(self.server(),
                              self.interface(),
                              self.client())
