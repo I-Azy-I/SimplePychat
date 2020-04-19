@@ -5,11 +5,13 @@
 
 #Types des messages: 0=messages ; 1=demande à la connection (ports) ; 2=réponse à la connection (historique des messages, listes de ports )
 
+#structure message: type-mon port/ip-heure-pseudo-message
+
 import asyncio
 from tkinter import *
 import random
-import time
 from datetime import datetime
+
 
 class Application:
 
@@ -20,7 +22,7 @@ class Application:
         self.global_list_ports_servers=[]
         self.global_new_mess_listbox_message=[]
         self.global_if_mess_received=False
-        self.global_mess_received=[]
+        self.global_hist_mess=[]
         choix=int(input("1 ou 2 ou +: "))
         if choix == 1:
             self.username="JUJU"
@@ -79,7 +81,6 @@ class Application:
                 if bool:
                     return False
 
-
         elif type(destinataires)==list:
             for i in range(len(destinataires)):
                 if destinataires[i] != blacklist:
@@ -97,6 +98,8 @@ class Application:
             print("Erreur fonction send: destinataires n'est ni un int ni une liste")
 
 
+
+
     async def reception(self, reader, writer):
         data = await reader.read(100) #serveur attend messages
         message = data.decode()         # décode message
@@ -106,11 +109,11 @@ class Application:
         type=message[:1]
         message=message[1:]
         if type=="0": #recois un message, ajoute à la listebox, si c'est un nouveau noeud il faut l'ajouter dans sa liste des noeuds connectés
-            self.global_new_mess_listbox_message.append((datetime.now().strftime('%H:%M:%S'))+" "+message[4:])
+            self.global_new_mess_listbox_message.append(message[4:])
             port=int(message[:4])
             if not port in self.global_list_ports_servers:
                 self.global_list_ports_servers.append(port)
-            self.global_mess_received.append((message[4:], port))
+            self.global_hist_mess.append(message)
         elif type=="1": #nouvelle connection -->  envoyer jusqu'a 2 noeuds, il faut encore controler que l'on envoie pas sont propre port
             port=int(message)
             if len(self.global_list_ports_servers)==0:
@@ -165,35 +168,19 @@ class Application:
         i=0
         while True:
             await asyncio.sleep(0.1)
-            #si le boutton est cliqué
-            if self.if_button_clicked:
+            if self.if_button_clicked: #si le boutton est cliqué
                 self.if_button_clicked = False
-
-                message="0"+f"{self.port_server}" + self.username + "> "+ self.string_var_entry_message #le message est ce qui est écrit dans l'interface
-                self.global_new_mess_listbox_message.append((datetime.now().strftime('%H:%M:%S'))+" "+message[5:])
-                await self.send(message,self.global_list_ports_servers)
+                message=f"{self.port_server}"+ (datetime.now().strftime('%H%M%S%f')[:-3]) + self.username + "> "+ self.string_var_entry_message #le message est ce qui est écrit dans l'interface
+                self.global_hist_mess.append(message)
 
 
 
-            #redistribution
-            if i<len(self.global_mess_received):
-                (message,port)=self.global_mess_received[i]
+
+            if i<len(self.global_hist_mess):
+                port=int(self.global_hist_mess[i][:4])
+                message=self.global_hist_mess[i][4:]
                 message="0"+f"{self.port_server}" + message
                 await self.send(message,self.global_list_ports_servers,bool=False, blacklist=port)
-                t=0
-                while t<len(self.global_list_ports_servers):
-                    await asyncio.sleep(0.05)
-                    if self.global_list_ports_servers[t]==port:
-                        t=t+1
-                    else:
-                        try:
-                            reader, writer = await asyncio.open_connection(self.ip_client, self.global_list_ports_servers[t])
-                            writer.write(message.encode())
-                            writer.close()
-
-                        except ConnectionRefusedError:
-                            print(f"Connection impossible à {port}")
-                        t=t+1
                 i=i+1
 
 
@@ -203,6 +190,7 @@ class Application:
 
 
     async def interface(self): #création de l'interface
+        print(self.global_list_ports_servers)
         def fct_button_send():
             self.string_var_entry_message=var_entry_message.get()
             self.if_button_clicked=True
@@ -229,8 +217,8 @@ class Application:
         while True:
 
             await asyncio.sleep(0.05)
-            if i<len(self.global_new_mess_listbox_message):
-                listbox_message.insert(i, self.global_new_mess_listbox_message[i])
+            if i<len(self.global_hist_mess):
+                listbox_message.insert(i, (datetime.now().strftime('[%H:%M] '))+self.global_hist_mess[i][13:])
                 i+=1
 
 
@@ -239,7 +227,7 @@ class Application:
 
 
     async def main(self):
-
+        print(self.global_list_ports_servers)
         await asyncio.gather(self.server(),
                              self.interface(),
                              self.client())
