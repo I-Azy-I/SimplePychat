@@ -11,6 +11,7 @@ import asyncio
 from tkinter import *
 import random
 from datetime import datetime
+import json
 
 
 class Application:
@@ -19,8 +20,7 @@ class Application:
         self.if_address=False
         self.string_var_entry_message = "" #permet de récuperer message tkinter
         self.if_button_clicked=False   #savoir si le bouton à été cliqué
-        self.global_list_ports_servers=[]
-        self.global_new_mess_listbox_message=[]
+        self.global_list_ports_servers=[] #transformer en ensemble?
         self.global_if_mess_received=False
         self.global_hist_mess=[]
         choix=int(input("1 ou 2 ou +: "))
@@ -61,24 +61,26 @@ class Application:
             self.ip_server="127.0.0.1"
             self.port_client=8888
             self.port_server=8888
-        if self. port_client!=0:
+        if self. port_client!=0: #dans le cas ou est le premier
             self.global_list_ports_servers.append(self.port_client)
+            print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
 
 
 
-    async def send(self, message, destinataires, bool=False, blacklist=0):
+    async def send(self, message, destinataires, sent=False, blacklist=0):
 
         if type(destinataires)==int:
+            print("test1")
             try:
                 reader, writer = await asyncio.open_connection(self.ip_client, destinataires)
                 writer.write(message.encode())
                 writer.close()
-                if bool:
+                if sent:
                     return True
 
             except ConnectionRefusedError:
                 print(f"Connection impossible à {destinataires}")
-                if bool:
+                if sent:
                     return False
 
         elif type(destinataires)==list:
@@ -88,11 +90,11 @@ class Application:
                         reader, writer = await asyncio.open_connection(self.ip_client, destinataires[i])
                         writer.write(message.encode())
                         writer.close()
-                        if bool:
+                        if sent:
                             return True
                     except ConnectionRefusedError:
                         print(f"Connection impossible à {destinataires[i]}")
-                        if bool:
+                        if sent:
                             return False
         else:
             print("Erreur fonction send: destinataires n'est ni un int ni une liste")
@@ -102,38 +104,37 @@ class Application:
 
     async def reception(self, reader, writer):
         data = await reader.read(100) #serveur attend messages
-        message = data.decode()         # décode message
-        addr = writer.get_extra_info('peername')
+        data = data.decode()         # décode message
+        addr = writer.get_extra_info('peername') #innutil
         writer.close() #ferme la connexion
-        print(f"Serveur: Received {message!r} from {addr[0]}")
-        type=message[:1]
-        message=message[1:]
-        if type=="0": #recois un message, ajoute à la listebox, si c'est un nouveau noeud il faut l'ajouter dans sa liste des noeuds connectés
-            self.global_new_mess_listbox_message.append(message[4:])
-            port=int(message[:4])
-            if not port in self.global_list_ports_servers:
-                self.global_list_ports_servers.append(port)
-            self.global_hist_mess.append(message)
-        elif type=="1": #nouvelle connection -->  envoyer jusqu'a 2 noeuds, il faut encore controler que l'on envoie pas sont propre port
-            port=int(message)
-            if len(self.global_list_ports_servers)==0:
+        print(f"Serveur: Received {data!r} from {addr[0]}")
+        data = json.loads(data)
+        if data["type"]==0: #recois un message, ajoute à la listebox, si c'est un nouveau noeud il faut l'ajouter dans sa liste des noeuds connectés
+            del data["type"]
+            if not data["port"] in self.global_list_ports_servers:
+                self.global_list_ports_servers.append(data["port"])
+                print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
+            self.global_hist_mess.append(data)
+        elif data["type"]==1: #nouvelle connection -->  envoyer jusqu'a 2 noeuds, il faut encore controler que l'on envoie pas sont propre port
+            if len(self.global_list_ports_servers)==0:#si aucun noeud(port/ip) a proposé
                 str_global_list_ports_servers=""
-            elif len(self.global_list_ports_servers)==1:
+            elif len(self.global_list_ports_servers)==1:#si 1 noeud(port/ip) a proposé
                 str_global_list_ports_servers=str(self.global_list_ports_servers[0])
-            else :
+            else :  #si plus de 1 noeud(port/ip) a proposé
                 node1,node2 =random.sample(self.global_list_ports_servers,k=2)
                 str_global_list_ports_servers=(str(node1)+","+str(node2)) #pour ip pas besoin de str
-            if not port in self.global_list_ports_servers:
-                self.global_list_ports_servers.append(port)
+            if not data["port"] in self.global_list_ports_servers:
+                self.global_list_ports_servers.append(data["port"])
+                print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
 
             #historique des message doit etre ajouté ici
+            data_to_send=json.dumps({"type":2, "new_nodes":str_global_list_ports_servers}) #à trouver une meilleure appelation
+            await self.send(data_to_send,data["port"])
 
-                await self.send("2"+str_global_list_ports_servers,port)
-
-        elif type=="2":
-            if message !="":
-                self.global_list_ports_servers.extend([int(i) for i in message.split(",")])
-                print(self.global_list_ports_servers)
+        elif data["type"]==2:
+            if data["new_nodes"] !="":
+                self.global_list_ports_servers.extend([int(i) for i in data["new_nodes"].split(",")]) #le int i ne sers à rien si l'on utilise des ip
+                print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
 
 
 
@@ -160,27 +161,24 @@ class Application:
     async def client(self):
         print(self.global_list_ports_servers)
         if self.port_client !=0:
-            bool=False
-            while not bool:
-                mess_ini="1"+str(self.port_server) #ip deja string
-                bool=await self.send(mess_ini, self.port_client,True)
+            sent=False
+            data_ini=json.dumps({"type":1, "port":self.port_server})
+            while not sent :
+                sent=await self.send(data_ini, self.port_client,True)
                 await asyncio.sleep(1)
         i=0
         while True:
             await asyncio.sleep(0.1)
             if self.if_button_clicked: #si le boutton est cliqué
                 self.if_button_clicked = False
-                message=f"{self.port_server}"+ (datetime.now().strftime('%H%M%S%f')[:-3]) + self.username + "> "+ self.string_var_entry_message #le message est ce qui est écrit dans l'interface
-                self.global_hist_mess.append(message)
-
-
+                data={"port":self.port_server,"heure": datetime.now().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":("> "+ self.string_var_entry_message)} #le message est ce qui est écrit dans l'interface
+                self.global_hist_mess.append(data)
 
 
             if i<len(self.global_hist_mess):
-                port=int(self.global_hist_mess[i][:4])
-                message=self.global_hist_mess[i][4:]
-                message="0"+f"{self.port_server}" + message
-                await self.send(message,self.global_list_ports_servers,bool=False, blacklist=port)
+                data=self.global_hist_mess[i]
+                data["type"]=0
+                await self.send(json.dumps(data),self.global_list_ports_servers,sent=False, blacklist=data["port"])
                 i=i+1
 
 
@@ -218,7 +216,7 @@ class Application:
 
             await asyncio.sleep(0.05)
             if i<len(self.global_hist_mess):
-                listbox_message.insert(i, (datetime.now().strftime('[%H:%M] '))+self.global_hist_mess[i][13:])
+                listbox_message.insert(i, (datetime.now().strftime('[%H:%M] '))+self.global_hist_mess[i]["pseudo"]+self.global_hist_mess[i]["message"])
                 i+=1
 
 
