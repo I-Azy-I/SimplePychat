@@ -23,12 +23,13 @@ class Application:
         self.global_list_ports_servers=[] #transformer en ensemble?
         self.global_if_mess_received=False
         self.global_hist_mess=[]
+        self.global_correction_hist_mess=True  #corrige les problèmes d'ordre de l'historique des messages
         choix=int(input("1 ou 2 ou +: "))
         if choix == 1:
             self.username="JUJU"
             self.ip_client="127.0.0.1"
             self.ip_server="127.0.0.1"
-            self.port_client=0#ne se connecte à personne
+            self.port_client=0 #ne se connecte à personne
             self.port_server=8887
         elif choix==2:
             self.username="MIMILE"
@@ -98,25 +99,23 @@ class Application:
         else:
             print("Erreur fonction send: destinataires n'est ni un int ni une liste")
 
+
+    def check_id(self, data):
+        #regarde si le message est déja dans l'historique
+        id=(data["heure"]+data["pseudo"])
+        for i in range(len(self.global_hist_mess)):
+            if (self.global_hist_mess[i]["heure"]+self.global_hist_mess[i]["pseudo"])==id:
+                return False
+        return True
+
     async def reception(self, reader, writer):
 
 
-        def check_id(self, data):
-            #regarde si le message est déja dans l'historique
-            id=(data["heure"]+data["pseudo"])
-            for i in range(len(self.global_hist_mess)):
-                if (self.global_hist_mess[i]["heure"]+self.global_hist_mess[i]["pseudo"])==id:
-                    return False
-            return True
-
-        #def update_global_hist_mess (self):
-        #    while len(self.global_hist_mess)>50:
-        #        del self.global_hist_mess[0]
 
 
         data = await reader.read(100) #serveur attend messages
         data = data.decode()         # décode message
-        addr = writer.get_extra_info('peername') #innutil
+        addr = writer.get_extra_info('peername') #inutile
         writer.close() #ferme la connexion
         print(f"Serveur: Received {data!r} from {addr[0]}")
         data = json.loads(data)
@@ -189,12 +188,13 @@ class Application:
                 self.global_hist_mess.append(data)
 
 
-            if i<len(self.global_hist_mess):
+            if i<len(self.global_hist_mess) and self.global_correction_hist_mess:
                 data=self.global_hist_mess[i]
                 data["type"]=0
                 await self.send(json.dumps(data),self.global_list_ports_servers,sent=False, sender=data["port"])
-                i=i+1
-
+                if len(self.global_hist_mess)<=5:
+                    i=i+1
+                self.global_correction_hist_mess=False
 
 
 
@@ -226,12 +226,22 @@ class Application:
 
         fenetre.update()
         i=0
+        y=0
         while True:
 
             await asyncio.sleep(0.05)
-            if i<len(self.global_hist_mess):
-                listbox_message.insert(i, (datetime.now().strftime('[%H:%M] '))+self.global_hist_mess[i]["pseudo"]+self.global_hist_mess[i]["message"])
-                i+=1
+            if not self.global_correction_hist_mess:
+                listbox_message.insert(i, (datetime.now().strftime('[%H:%M] '))+self.global_hist_mess[y]["pseudo"]+self.global_hist_mess[y]["message"])
+                i=i+1
+                print(self.global_hist_mess[y]["message"])
+                if y<5:
+                    y+=1
+                else :
+                    del self.global_hist_mess[0]
+                self.global_correction_hist_mess=True
+                print(f"[Debug]: len(global_hist_mess) : {len(self.global_hist_mess)}")
+
+
 
 
             fenetre.update()
