@@ -67,8 +67,7 @@ class Application:
 
 
 
-    async def send(self, message, destinataires, sent=False, blacklist=0):
-
+    async def send(self, message, destinataires, sent=False, sender=0):
         if type(destinataires)==int:
             print("test1")
             try:
@@ -85,7 +84,7 @@ class Application:
 
         elif type(destinataires)==list:
             for i in range(len(destinataires)):
-                if destinataires[i] != blacklist:
+                if destinataires[i] != sender:
                     try:
                         reader, writer = await asyncio.open_connection(self.ip_client, destinataires[i])
                         writer.write(message.encode())
@@ -99,10 +98,22 @@ class Application:
         else:
             print("Erreur fonction send: destinataires n'est ni un int ni une liste")
 
-
-
-
     async def reception(self, reader, writer):
+
+
+        def check_id(self, data):
+            #regarde si le message est déja dans l'historique
+            id=(data["heure"]+data["pseudo"])
+            for i in range(len(self.global_hist_mess)):
+                if (self.global_hist_mess[i]["heure"]+self.global_hist_mess[i]["pseudo"])==id:
+                    return False
+            return True
+
+        #def update_global_hist_mess (self):
+        #    while len(self.global_hist_mess)>50:
+        #        del self.global_hist_mess[0]
+
+
         data = await reader.read(100) #serveur attend messages
         data = data.decode()         # décode message
         addr = writer.get_extra_info('peername') #innutil
@@ -114,7 +125,10 @@ class Application:
             if not data["port"] in self.global_list_ports_servers:
                 self.global_list_ports_servers.append(data["port"])
                 print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
-            self.global_hist_mess.append(data)
+
+            if self.check_id(data):
+                self.global_hist_mess.append(data)
+
         elif data["type"]==1: #nouvelle connection -->  envoyer jusqu'a 2 noeuds, il faut encore controler que l'on envoie pas sont propre port
             if len(self.global_list_ports_servers)==0:#si aucun noeud(port/ip) a proposé
                 str_global_list_ports_servers=""
@@ -171,14 +185,14 @@ class Application:
             await asyncio.sleep(0.1)
             if self.if_button_clicked: #si le boutton est cliqué
                 self.if_button_clicked = False
-                data={"port":self.port_server,"heure": datetime.now().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":("> "+ self.string_var_entry_message)} #le message est ce qui est écrit dans l'interface
+                data={"port":self.port_server,"heure": datetime.utcnow().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":("> "+ self.string_var_entry_message)} #le message est ce qui est écrit dans l'interface
                 self.global_hist_mess.append(data)
 
 
             if i<len(self.global_hist_mess):
                 data=self.global_hist_mess[i]
                 data["type"]=0
-                await self.send(json.dumps(data),self.global_list_ports_servers,sent=False, blacklist=data["port"])
+                await self.send(json.dumps(data),self.global_list_ports_servers,sent=False, sender=data["port"])
                 i=i+1
 
 
