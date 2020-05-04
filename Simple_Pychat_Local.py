@@ -21,6 +21,7 @@ class Application:
     def __init__(self):
 
         #variable
+        self.size_max=4 #4:max9999 str
         self.if_address=False
         self.string_var_entry_message = "" #permet de récuperer message tkinter
         self.if_button_clicked=False   #savoir si le bouton à été cliqué
@@ -84,39 +85,54 @@ class Application:
             self.global_list_ports_servers.append(self.port_client)
             print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
 
+    def add_lenght_byte(self, data):
+            #ajoute au debut du str sa taille en byte
+            return str(len(data.encode())).zfill(self.size_max)+data
 
+    async def try_send(self,data, destinataire,sent=False):
+        try:
+            reader, writer = await asyncio.open_connection(self.ip_client, destinataire)
+            writer.write(data.encode())
+            print(f"Envoi: {data}")
+            writer.close()
+            if sent:
+                return True
 
-    async def send(self, message, destinataires, sent=False, sender=0):
+        except ConnectionRefusedError:
+            print(f"Connection impossible à {destinataire}")
+            if sent:
+                return False
+
+    async def send(self, data, destinataires, sent=False, sender=0):
+        data=self.add_lenght_byte(data)
         if type(destinataires)==int:
             print("test1")
-            try:
-                reader, writer = await asyncio.open_connection(self.ip_client, destinataires)
-                writer.write(message.encode())
-                writer.close()
-                if sent:
+            if not sent:
+                await self.try_send(data,destinataires)
+            else:
+                if await self.try_send(data,destinataires,sent=True):
                     return True
-
-            except ConnectionRefusedError:
-                print(f"Connection impossible à {destinataires}")
-                if sent:
-                    return False
+            if sent:
+                return False
 
         elif type(destinataires)==list:
-            for i in range(len(destinataires)):
-                if destinataires[i] != sender:
-                    try:
-                        reader, writer = await asyncio.open_connection(self.ip_client, destinataires[i])
-                        writer.write(message.encode())
-                        writer.close()
-                        if sent:
+            for i in destinataires:
+                if i != sender:
+                    if not sent:
+                        await self.try_send(data,i)
+                    else:
+                        if await self.try_send(data,i, sent=True):
                             return True
-                    except ConnectionRefusedError:
-                        print(f"Connection impossible à {destinataires[i]}")
-                        if sent:
-                            return False
+            if sent:
+                return False
         else:
-            print("Erreur fonction send: destinataires n'est ni un int ni une liste")
+            print(f"Erreur fonction send: destinataires n'est ni un int ni une liste (destinatiire {destinataires}, type {type(destinataires)}, contenu {data}")
 
+    def lenght_data(self,data):
+        #return nombre de bytes de l'information reçue
+        size = int(data.decode())
+        print(f"[Debug] Taille information recu: {size}")
+        return size
 
     def check_id(self, data):
         #regarde si le message est déja dans l'historique
@@ -127,11 +143,10 @@ class Application:
         return True
 
     async def reception(self, reader, writer):
-
-
-
-
-        data = await reader.read(100) #serveur attend messages
+        data = await reader.read(self.size_max)
+        size= self.lenght_data(data)
+        print(size)
+        data = await reader.read(n=size) #serveur attend messages
         data = data.decode()         # décode message
         addr = writer.get_extra_info('peername') #inutile
         writer.close() #ferme la connexion
@@ -182,7 +197,7 @@ class Application:
 
         async with server:
             await server.serve_forever()
-    
+
 
 
 
