@@ -12,11 +12,15 @@ from tkinter import *
 import random
 from datetime import datetime
 import json
+import menutkinter
+
 
 
 class Application:
 
     def __init__(self):
+
+        #variable
         self.if_address=False
         self.string_var_entry_message = "" #permet de récuperer message tkinter
         self.if_button_clicked=False   #savoir si le bouton à été cliqué
@@ -24,45 +28,59 @@ class Application:
         self.global_if_mess_received=False
         self.global_hist_mess=[]
         self.global_correction_hist_mess=True  #corrige les problèmes d'ordre de l'historique des messages
-        choix=int(input("1 ou 2 ou +: "))
-        if choix == 1:
-            self.username="JUJU"
-            self.ip_client="127.0.0.1"
-            self.ip_server="127.0.0.1"
-            self.port_client=0 #ne se connecte à personne
-            self.port_server=8887
-        elif choix==2:
-            self.username="MIMILE"
-            self.ip_client="127.0.0.1"
-            self.ip_server="127.0.0.1"
-            self.port_client=8887
-            self.port_server=8888
-        elif choix==3:
-            self.username="Pedro"
-            self.ip_client="127.0.0.1"
-            self.ip_server="127.0.0.1"
-            self.port_client=8888
-            self.port_server=8889
-        elif choix==4:
-            self.username="Polo"
-            self.ip_client="127.0.0.1"
-            self.ip_server="127.0.0.1"
-            self.port_client=8888
-            self.port_server=8886
 
-        elif choix==5:
-            self.username="JCVD"
-            self.ip_client="127.0.0.1"
-            self.ip_server="127.0.0.1"
-            self.port_client=8886
-            self.port_server=8885
-        else:
-            self.username="SIMPLE PYCHAT"
-            self.ip_client="127.0.0.1"
-            self.ip_server="127.0.0.1"
-            self.port_client=8888
-            self.port_server=8888
-        if self. port_client!=0: #dans le cas ou est le premier
+
+
+
+        self.username=""
+        self.ip_client=""
+        self.ip_server=""
+        self.port_client=0
+        self.port_server=0
+
+
+    def configuration(self,config):
+        print(config)
+        if config["type"]==0:
+            choix=config["choix"]
+            if choix == 1:
+                self.username="JUJU"
+                self.ip_client="127.0.0.1"
+                self.ip_server="127.0.0.1"
+                self.port_client=0 #ne se connecte à personne
+                self.port_server=8887
+            elif choix==2:
+                self.username="MIMILE"
+                self.ip_client="127.0.0.1"
+                self.ip_server="127.0.0.1"
+                self.port_client=8887
+                self.port_server=8888
+            elif choix==3:
+                self.username="Pedro"
+                self.ip_client="127.0.0.1"
+                self.ip_server="127.0.0.1"
+                self.port_client=8888
+                self.port_server=8889
+            elif choix==4:
+                self.username="Polo"
+                self.ip_client="127.0.0.1"
+                self.ip_server="127.0.0.1"
+                self.port_client=8888
+                self.port_server=8886
+
+            elif choix==5:
+                self.username="JCVD"
+                self.ip_client="127.0.0.1"
+                self.ip_server="127.0.0.1"
+                self.port_client=8886
+                self.port_server=8885
+            else:
+                self.username="SIMPLE PYCHAT"
+                self.ip_client="127.0.0.1"
+                self.ip_server="127.0.0.1"
+                self.port_client=8888
+                self.port_server=8888
+        if self.port_client!=0: #dans le cas ou est le premier
             self.global_list_ports_servers.append(self.port_client)
             print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
 
@@ -156,7 +174,6 @@ class Application:
 
     async def server(self):
 
-
         print(self.global_list_ports_servers)
         server = await asyncio.start_server(self.reception, self.ip_server, self.port_server) #sers à cette adresse
 
@@ -165,6 +182,7 @@ class Application:
 
         async with server:
             await server.serve_forever()
+    
 
 
 
@@ -172,6 +190,7 @@ class Application:
 
 
     async def client(self):
+
         print(self.global_list_ports_servers)
         if self.port_client !=0:
             sent=False
@@ -208,34 +227,28 @@ class Application:
             self.if_button_clicked=True
             var_entry_message.set("")
 
+
         fenetre = Tk()
         var_entry_message=StringVar()
-
-
         label_username = Label(fenetre, text=f"{self.username}")
         label_username.pack()
-
-        listbox_message = Listbox(fenetre)
-        listbox_message.pack()
-
+        interface_message = Listbox(fenetre)
+        interface_message.pack()
         entry_message = Entry(fenetre, textvariable=var_entry_message, width=30)
         entry_message.pack()
-
         button_send= Button(fenetre, command=fct_button_send)
         button_send.pack()
 
         fenetre.update()
         i=0
-        y=0
         while True:
 
             await asyncio.sleep(0.05)
             if not self.global_correction_hist_mess:
-                listbox_message.insert(i, (datetime.now().strftime('[%H:%M] '))+self.global_hist_mess[y]["pseudo"]+self.global_hist_mess[y]["message"])
-                i=i+1
-                print(self.global_hist_mess[y]["message"])
-                if y<5:
-                    y+=1
+                interface_message.insert(END, (datetime.now().strftime('[%H:%M] '))+self.global_hist_mess[i]["pseudo"]+self.global_hist_mess[i]["message"])
+                print(self.global_hist_mess[i]["message"])
+                if i<5:
+                    i+=1
                 else :
                     del self.global_hist_mess[0]
                 self.global_correction_hist_mess=True
@@ -255,6 +268,7 @@ class Application:
                              self.client())
 
     def run(self):
+        self.configuration(menutkinter.start())
         asyncio.run(self.main())
 
 
