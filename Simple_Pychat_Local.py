@@ -13,8 +13,13 @@ import random
 from datetime import datetime
 import json
 import menutkinter
-
-
+import base64
+import os
+from cryptography.fernet import Fernet
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+import crypto_SP
 
 class Application:
 
@@ -50,24 +55,28 @@ class Application:
                 self.ip_server="127.0.0.1"
                 self.port_client=0 #ne se connecte à personne
                 self.port_server=8887
+                password="1234"
             elif choix==2:
                 self.username="MIMILE"
                 self.ip_client="127.0.0.1"
                 self.ip_server="127.0.0.1"
                 self.port_client=8887
                 self.port_server=8888
+                password="Rasputin"
             elif choix==3:
                 self.username="Pedro"
                 self.ip_client="127.0.0.1"
                 self.ip_server="127.0.0.1"
                 self.port_client=8888
                 self.port_server=8889
+                password="1234"
             elif choix==4:
                 self.username="Polo"
                 self.ip_client="127.0.0.1"
                 self.ip_server="127.0.0.1"
                 self.port_client=8888
                 self.port_server=8886
+                password="1234"
 
             elif choix==5:
                 self.username="JCVD"
@@ -75,19 +84,22 @@ class Application:
                 self.ip_server="127.0.0.1"
                 self.port_client=8886
                 self.port_server=8885
+                password="1234"
             else:
                 self.username="SIMPLE PYCHAT"
                 self.ip_client="127.0.0.1"
                 self.ip_server="127.0.0.1"
                 self.port_client=8888
                 self.port_server=8888
+                password="1234"
         if self.port_client!=0: #dans le cas ou est le premier
             self.global_list_ports_servers.append(self.port_client)
             print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
+        self.key=crypto_SP.create_key(password)
 
     def add_lenght_byte(self, data):
             #ajoute au debut du str sa taille en byte
-            return str(len(data.encode())).zfill(self.size_max)+data
+            return str(len(data)).zfill(self.size_max)+data.decode()
 
     async def try_send(self,data, destinataire,sent=False):
         try:
@@ -104,6 +116,7 @@ class Application:
                 return False
 
     async def send(self, data, destinataires, sent=False, sender=0):
+        data=crypto_SP.encrypt(self.key, data)
         data=self.add_lenght_byte(data)
         if type(destinataires)==int:
             print("test1")
@@ -147,40 +160,43 @@ class Application:
         size= self.lenght_data(data)
         print(size)
         data = await reader.read(n=size) #serveur attend messages
-        data = data.decode()         # décode message
-        addr = writer.get_extra_info('peername') #inutile
-        writer.close() #ferme la connexion
-        print(f"Serveur: Received {data!r} from {addr[0]}")
-        data = json.loads(data)
-        if data["type"]==0: #recois un message, ajoute à la listebox, si c'est un nouveau noeud il faut l'ajouter dans sa liste des noeuds connectés
-            del data["type"]
-            if not data["port"] in self.global_list_ports_servers:
-                self.global_list_ports_servers.append(data["port"])
-                print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
+        data=crypto_SP.decrypt(self.key, data)
+        print(type(data))
+        if isinstance(data, bytes):
+            data=data.decode()
+            addr = writer.get_extra_info('peername') #inutile
+            writer.close() #ferme la connexion
+            print(f"Serveur: Received {data!r} from {addr[0]}")
+            data = json.loads(data)
+            if data["type"]==0: #recois un message, ajoute à la listebox, si c'est un nouveau noeud il faut l'ajouter dans sa liste des noeuds connectés
+                del data["type"]
+                if not data["port"] in self.global_list_ports_servers:
+                    self.global_list_ports_servers.append(data["port"])
+                    print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
 
-            if self.check_id(data):
-                self.global_hist_mess.append(data)
+                if self.check_id(data):
+                    self.global_hist_mess.append(data)
 
-        elif data["type"]==1: #nouvelle connection -->  envoyer jusqu'a 2 noeuds, il faut encore controler que l'on envoie pas sont propre port
-            if len(self.global_list_ports_servers)==0:#si aucun noeud(port/ip) a proposé
-                str_global_list_ports_servers=""
-            elif len(self.global_list_ports_servers)==1:#si 1 noeud(port/ip) a proposé
-                str_global_list_ports_servers=str(self.global_list_ports_servers[0])
-            else :  #si plus de 1 noeud(port/ip) a proposé
-                node1,node2 =random.sample(self.global_list_ports_servers,k=2)
-                str_global_list_ports_servers=(str(node1)+","+str(node2)) #pour ip pas besoin de str
-            if not data["port"] in self.global_list_ports_servers:
-                self.global_list_ports_servers.append(data["port"])
-                print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
+            elif data["type"]==1: #nouvelle connection -->  envoyer jusqu'a 2 noeuds, il faut encore controler que l'on envoie pas sont propre port
+                if len(self.global_list_ports_servers)==0:#si aucun noeud(port/ip) a proposé
+                    str_global_list_ports_servers=""
+                elif len(self.global_list_ports_servers)==1:#si 1 noeud(port/ip) a proposé
+                    str_global_list_ports_servers=str(self.global_list_ports_servers[0])
+                else :  #si plus de 1 noeud(port/ip) a proposé
+                    node1,node2 =random.sample(self.global_list_ports_servers,k=2)
+                    str_global_list_ports_servers=(str(node1)+","+str(node2)) #pour ip pas besoin de str
+                if not data["port"] in self.global_list_ports_servers:
+                    self.global_list_ports_servers.append(data["port"])
+                    print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
 
-            #historique des message doit etre ajouté ici
-            data_to_send=json.dumps({"type":2, "new_nodes":str_global_list_ports_servers}) #à trouver une meilleure appelation
-            await self.send(data_to_send,data["port"])
+                #historique des message doit etre ajouté ici
+                data_to_send=json.dumps({"type":2, "new_nodes":str_global_list_ports_servers}) #à trouver une meilleure appelation
+                await self.send(data_to_send,data["port"])
 
-        elif data["type"]==2:
-            if data["new_nodes"] !="":
-                self.global_list_ports_servers.extend([int(i) for i in data["new_nodes"].split(",")]) #le int i ne sers à rien si l'on utilise des ip
-                print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
+            elif data["type"]==2:
+                if data["new_nodes"] !="":
+                    self.global_list_ports_servers.extend([int(i) for i in data["new_nodes"].split(",")]) #le int i ne sers à rien si l'on utilise des ip
+                    print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
 
 
 
