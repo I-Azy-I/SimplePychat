@@ -41,12 +41,15 @@ class Application:
         self.username=""
         self.ip_client=""
         self.ip_server=""
+        self.salon=""
         self.port_client=0
         self.port_server=0
 
 
     def configuration(self,config):
         print(config)
+        # 0 démo, 1 créer, 2 rejoindre
+        #config-> 0 type, choix; 1 type, pseudo, mon_port, salon, password ;2 type pseudo, mon_port, port_serveur, password
         if config["type"]==0:
             choix=config["choix"]
             if choix == 1:
@@ -62,7 +65,7 @@ class Application:
                 self.ip_server="127.0.0.1"
                 self.port_client=8887
                 self.port_server=8888
-                password="Rasputin"
+                password="1234"
             elif choix==3:
                 self.username="Pedro"
                 self.ip_client="127.0.0.1"
@@ -92,6 +95,26 @@ class Application:
                 self.port_client=8888
                 self.port_server=8888
                 password="1234"
+        elif config["type"]==1:
+            self.username=config["pseudo"]
+            self.ip_client="127.0.0.1" #prédéfini car en local
+            self.ip_server="127.0.0.1"
+            self.port_client=0
+            self.port_server=config["mon_port"]
+            self.salon=config["salon"]
+            password=config["password"]
+        elif config["type"]==2:
+            self.username=config["pseudo"]
+            self.ip_client="127.0.0.1" #prédéfini car en local
+            self.ip_server="127.0.0.1"
+            self.port_client=config["port_serveur"]
+            self.port_server=config["mon_port"]
+            password=config["password"]
+
+
+
+
+
         if self.port_client!=0: #dans le cas ou est le premier
             self.global_list_ports_servers.append(self.port_client)
             print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
@@ -190,10 +213,11 @@ class Application:
                     print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
 
                 #historique des message doit etre ajouté ici
-                data_to_send=json.dumps({"type":2, "new_nodes":str_global_list_ports_servers}) #à trouver une meilleure appelation
+                data_to_send=json.dumps({"type":2, "new_nodes":str_global_list_ports_servers, "salon":self.salon}) #à trouver une meilleure appelation
                 await self.send(data_to_send,data["port"])
 
             elif data["type"]==2:
+                self.salon=data["salon"]
                 if data["new_nodes"] !="":
                     self.global_list_ports_servers.extend([int(i) for i in data["new_nodes"].split(",")]) #le int i ne sers à rien si l'on utilise des ip
                     print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")

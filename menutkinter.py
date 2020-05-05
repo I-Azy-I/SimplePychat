@@ -14,11 +14,11 @@ def start():
         lab_pseudo.grid_forget()
         input_pseudo.grid_forget()
 
-        lab_port.grid_forget()
-        input_port.grid_forget()
+        lab_port_serveur.grid_forget()
+        input_port_serveur.grid_forget()
 
-        lab_ip.grid_forget()
-        input_ip.grid_forget()
+        lab_mon_port.grid_forget()
+        input_mon_port.grid_forget()
 
         lab_mdp.grid_forget()
         input_mdp.grid_forget()
@@ -42,11 +42,12 @@ def start():
         lab_pseudo.grid(row=1, column=0, stick=W)
         input_pseudo.grid(row=1, column=1)
 
-        lab_port.grid(row=2, column=0,stick=W)
-        input_port.grid(row=2, column=1)
+        lab_mon_port.grid(row=2, column=0, stick=W)
+        input_mon_port.grid(row=2, column=1)
 
-        lab_ip.grid(row=3, column=0, stick=W)
-        input_ip.grid(row=3, column=1)
+        lab_port_serveur.grid(row=3, column=0,stick=W)
+        input_port_serveur.grid(row=3, column=1)
+
 
         lab_mdp.grid(row=4, column=0,stick=W)
         input_mdp.grid(row=4, column=1)
@@ -56,14 +57,26 @@ def start():
         type_menu=1
 
 
+    def b_rejoindre_pressed():
+        global config
+        global quit_menu
+        try:
+            config={"type":2,"pseudo":tkvar_pseudo.get(), "mon_port":int(tkvar_mon_port.get()), "port_serveur": int(tkvar_port_serveur.get()),"password": tkvar_mdp.get()}
+        except:
+            print("Erreur de format des données")
+        else:
+            quit_menu=True
+
+
+
 
 
     def supr_menu_creer():
         lab_pseudo.grid_forget()
         input_pseudo.grid_forget()
 
-        lab_port.grid_forget()
-        input_port.grid_forget()
+        lab_mon_port.grid_forget()
+        input_mon_port.grid_forget()
 
         lab_salon.grid_forget()
         input_salon.grid_forget()
@@ -87,8 +100,8 @@ def start():
         lab_pseudo.grid(row=1, column=0, stick=W)
         input_pseudo.grid(row=1, column=1)
 
-        lab_port.grid(row=2, column=0,stick=W)
-        input_port.grid(row=2, column=1)
+        lab_mon_port.grid(row=2, column=0,stick=W)
+        input_mon_port.grid(row=2, column=1)
 
         lab_salon.grid(row=3, column=0, stick=W)
         input_salon.grid(row=3, column=1)
@@ -99,6 +112,17 @@ def start():
         b_creer.grid(row=5, column=1)
 
         type_menu=2
+
+    def b_creer_pressed():
+        global config
+        global quit_menu
+        try:
+            config={"type":1,"pseudo":tkvar_pseudo.get(), "mon_port":int(tkvar_mon_port.get()), "salon": tkvar_salon.get(),"password": tkvar_mdp.get()}
+        except:
+            print("Erreur de format des données")
+        else:
+            quit_menu=True
+
     def supr_menu_demo():
         choix_1.grid_forget()
         choix_2.grid_forget()
@@ -160,13 +184,13 @@ def start():
     tkvar_pseudo=StringVar()
     input_pseudo = Entry(menu_tk, textvariable=tkvar_pseudo, width=30)
 
-    lab_ip= Label(menu_tk, text="Ip:")
-    tkvar_ip=StringVar()
-    input_ip = Entry(menu_tk, textvariable=tkvar_ip, width=30)
+    lab_mon_port= Label(menu_tk, text="Mon port:")
+    tkvar_mon_port=StringVar()
+    input_mon_port = Entry(menu_tk, textvariable=tkvar_mon_port, width=30)
 
-    lab_port= Label(menu_tk, text="Port:")
-    tkvar_port=StringVar()
-    input_port = Entry(menu_tk, textvariable=tkvar_port, width=30)
+    lab_port_serveur= Label(menu_tk, text="Port seveur:")
+    tkvar_port_serveur=StringVar()
+    input_port_serveur = Entry(menu_tk, textvariable=tkvar_port_serveur, width=30)
 
     lab_mdp= Label( menu_tk, text="Mot de passe:")
     tkvar_mdp=StringVar()
@@ -176,8 +200,8 @@ def start():
     tkvar_salon=StringVar()
     input_salon = Entry(menu_tk, textvariable=tkvar_salon, width=30)
 
-    b_rejoindre=Button(menu_tk, text="REJOINDRE")
-    b_creer=Button(menu_tk, text="CREER")
+    b_rejoindre=Button(menu_tk, text="REJOINDRE", command=b_rejoindre_pressed)
+    b_creer=Button(menu_tk, text="CREER", command=b_creer_pressed)
     b_demo=Button(menu_tk, text="*____*", command=b_demo_pressed)
 
 
