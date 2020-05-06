@@ -192,7 +192,7 @@ def start():
     tkvar_port_serveur=StringVar()
     input_port_serveur = Entry(menu_tk, textvariable=tkvar_port_serveur, width=30)
 
-    lab_mdp= Label( menu_tk, text="Mot de passe:")
+    lab_mdp= Label( menu_tk, text="Mot de passe (5 caractères min):")
     tkvar_mdp=StringVar()
     input_mdp = Entry(menu_tk,show="*" ,textvariable=tkvar_mdp, width=30)
 
@@ -214,7 +214,12 @@ def start():
 
 
     while True:
-        if quit_menu:
+        if quit_menu and len(tkvar_mdp.get())>=5 and type_menu!=3:
+            menu_tk.destroy()
+            return config
+        elif quit_menu and len(tkvar_mdp.get())<5 and type_menu!=3:
+            quit_menu=False
+        elif quit_menu and type_menu==3:
             menu_tk.destroy()
             return config
         menu_tk.update()

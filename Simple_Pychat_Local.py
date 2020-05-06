@@ -8,11 +8,15 @@
 #structure message: type-mon port/ip-heure-pseudo-message
 
 import asyncio
-from tkinter import *
 import random
 from datetime import datetime
 import json
+
+#Pour l'interface graphique: #
+from tkinter import *
 import menutkinter
+
+#Pour le cryptage: #
 import base64
 import os
 from cryptography.fernet import Fernet
@@ -32,7 +36,7 @@ class Application:
         self.if_button_clicked=False   #savoir si le bouton à été cliqué
         self.global_list_ports_servers=[] #transformer en ensemble?
         self.global_if_mess_received=False
-        self.global_hist_mess=[]
+        self.global_hist_mess=[] #historique des messages#
         self.global_correction_hist_mess=True  #corrige les problèmes d'ordre de l'historique des messages
 
 
@@ -96,40 +100,40 @@ class Application:
                 self.port_server=8888
                 password="1234"
         elif config["type"]==1:
-            self.username=config["pseudo"]
+            self.username=config["pseudo"] #récupère du module menutkinter le pseudo contenu dans le dictionnaire config#
             self.ip_client="127.0.0.1" #prédéfini car en local
             self.ip_server="127.0.0.1"
             self.port_client=0
-            self.port_server=config["mon_port"]
-            self.salon=config["salon"]
-            password=config["password"]
+            self.port_server=config["mon_port"] #récupère du module menutkinter mon port contenu dans le dictionnaire config#
+            self.salon=config["salon"] #récupère du module menutkinter le nom du salon contenu dans le dictionnaire config#
+            password=config["password"] #récupère du module menutkinter le mot de passe contenu dans le dictionnaire config#
         elif config["type"]==2:
-            self.username=config["pseudo"]
+            self.username=config["pseudo"]  #récupère du module menutkinter le pseudo contenu dans le dictionnaire config#
             self.ip_client="127.0.0.1" #prédéfini car en local
             self.ip_server="127.0.0.1"
-            self.port_client=config["port_serveur"]
-            self.port_server=config["mon_port"]
-            password=config["password"]
+            self.port_client=config["port_serveur"]  #récupère du module menutkinter le port du serveur contenu dans le dictionnaire config#
+            self.port_server=config["mon_port"]  #récupère du module menutkinter mon port contenu dans le dictionnaire config#
+            password=config["password"]  #récupère du module menutkinter le mot de passe contenu dans le dictionnaire config#
 
 
 
 
 
-        if self.port_client!=0: #dans le cas ou est le premier
+        if self.port_client!=0: # Si c'est le créateur du salon
             self.global_list_ports_servers.append(self.port_client)
             print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
         self.key=crypto_SP.create_key(password)
 
     def add_lenght_byte(self, data):
-            #ajoute au debut du str sa taille en byte
+            #ajoute au debut du str sa taille en byte (Buffer)
             return str(len(data)).zfill(self.size_max)+data.decode()
 
     async def try_send(self,data, destinataire,sent=False):
         try:
-            reader, writer = await asyncio.open_connection(self.ip_client, destinataire)
-            writer.write(data.encode())
+            reader, writer = await asyncio.open_connection(self.ip_client, destinataire) #ouvre une connection #
+            writer.write(data.encode()) #envoi les données en binaire#
             print(f"Envoi: {data}")
-            writer.close()
+            writer.close() #ferme la connection#
             if sent:
                 return True
 
@@ -277,48 +281,46 @@ class Application:
 
     async def interface(self): #création de l'interface
         print(self.global_list_ports_servers)
-        def fct_button_send():
+        def fct_button_send(): #fonction pour le bouton#
             self.string_var_entry_message=var_entry_message.get()
             self.if_button_clicked=True
             var_entry_message.set("")
 
 
-        fenetre = Tk()
+        fenetre = Tk() #crée une fenêtre tkinter#
         var_entry_message=StringVar()
-        label_username = Label(fenetre, text=f"{self.username}")
-        label_username.pack()
-        interface_message = Listbox(fenetre)
-        interface_message.pack()
-        entry_message = Entry(fenetre, textvariable=var_entry_message, width=30)
-        entry_message.pack()
-        button_send= Button(fenetre, command=fct_button_send)
-        button_send.pack()
+        label_username = Label(fenetre, text=f"{self.username}") #création d'un widget "Label" qui contient le nom d'utilisateur#
+        label_username.pack() #ajout du widget à l'environnement graphique#
+        interface_message = Listbox(fenetre) #création d'un widget "Listbox" qui contient les messages#
+        interface_message.pack() #ajout du widget à l'environnement graphique#
+        entry_message = Entry(fenetre, textvariable=var_entry_message, width=30)#création d'un widget "Entry" pour entrer le message#
+        entry_message.pack() #ajout du widget à l'environnement graphique#
+        button_send= Button(fenetre, command=fct_button_send) #création d'un widget "Button" qui, si cliqué, envoie le message#
+        button_send.pack() #ajout du widget à l'environnement graphique#
 
-        fenetre.update()
+        fenetre.update() #mets à jour la fenêtre#
         i=0
         while True:
 
             await asyncio.sleep(0.05)
             if not self.global_correction_hist_mess:
-                interface_message.insert(END, (datetime.now().strftime('[%H:%M] '))+self.global_hist_mess[i]["pseudo"]+self.global_hist_mess[i]["message"])
+                interface_message.insert(END, (datetime.now().strftime('[%H:%M] '))+self.global_hist_mess[i]["pseudo"]+self.global_hist_mess[i]["message"]) #ajoute un message reçu à la Listbox#
                 print(self.global_hist_mess[i]["message"])
                 if i<5:
                     i+=1
                 else :
-                    del self.global_hist_mess[0]
+                    del self.global_hist_mess[0] #supprime le message le plus ancien de l'historique des messages quand l'historique atteints sa grandeur max#
                 self.global_correction_hist_mess=True
                 print(f"[Debug]: len(global_hist_mess) : {len(self.global_hist_mess)}")
 
 
-
-
-            fenetre.update()
+            fenetre.update() #applique les modifications à l'interface graphique#
 
 
 
     async def main(self):
         print(self.global_list_ports_servers)
-        await asyncio.gather(self.server(),
+        await asyncio.gather(self.server(), #exécute en concurrence les fonctions server, interface et client#
                              self.interface(),
                              self.client())
 
