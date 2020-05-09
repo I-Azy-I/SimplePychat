@@ -1,4 +1,0 @@
-# SimplePychat
-
-Oof
-
