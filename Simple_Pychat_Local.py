@@ -15,6 +15,7 @@ import json
 import menutkinter
 import base64
 import os
+import sys
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
@@ -35,6 +36,7 @@ class Application:
         self.global_hist_mess=[]
         self.global_correction_hist_mess=True  #corrige les problèmes d'ordre de l'historique des messages
         self.variable_global_hist_mess=0
+        self.continue2=True
 
 
 
@@ -262,7 +264,7 @@ class Application:
                 sent=await self.send(data_ini, self.port_client,True)
                 await asyncio.sleep(1)
         i=0
-        while True:
+        while self.continue2:
             await asyncio.sleep(0.1)
             if self.if_button_clicked: #si le boutton est cliqué
                 self.if_button_clicked = False
@@ -289,12 +291,20 @@ class Application:
 
 
 
+
+
     async def interface(self): #création de l'interface
         print(self.global_list_ports_servers)
         def fct_button_send():
             self.string_var_entry_message=var_entry_message.get()
             self.if_button_clicked=True
             var_entry_message.set("")
+        def exit_fenetre():
+            print("Fin du programme")
+            fenetre.destroy()
+            self.continue2=False
+
+
 
 
         fenetre = Tk()
@@ -308,15 +318,13 @@ class Application:
         button_send= Button(fenetre, command=fct_button_send)
         button_send.pack()
 
+        fenetre.protocol('WM_DELETE_WINDOW', exit_fenetre)
+
         fenetre.update()
 
-        while True:
+        while self.continue2:
 
             await asyncio.sleep(0.05)
-
-
-
-
 
             fenetre.update()
 
