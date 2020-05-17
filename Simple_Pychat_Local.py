@@ -3,7 +3,7 @@
 # ip E:192.168.1.22
 # ip J:192.168.1.161
 
-#Types des messages: 0=messages ; 1=demande à la connection (ports) ; 2=réponse à la connection (historique des messages, listes de ports )
+#Types des messages: 0=messages ; 1=demande à la connection (ports) ; 2=réponse à la connection (historique des messages, listes de ports ) ; 3=déconnections
 
 #structure message: type-mon port/ip-heure-pseudo-message
 
@@ -32,12 +32,13 @@ class Application:
         self.string_var_entry_message = "" #permet de récuperer message tkinter
         self.if_button_clicked=False   #savoir si le bouton à été cliqué
         self.global_list_ports_servers=[] #transformer en ensemble?
+        self.global_compteur={} #compte les échecs de connections
         self.global_if_mess_received=False
         self.global_hist_mess=[]
         self.global_correction_hist_mess=True  #corrige les problèmes d'ordre de l'historique des messages
         self.variable_global_hist_mess=0
-        self.continue2=True
-
+        self.continue1=False #initialisation de la première étape de la déconnection
+        self.continue2=True #initialisation de la deuxième étape de la déconnection
 
 
 
@@ -120,6 +121,7 @@ class Application:
 
         if self.port_client!=0: #dans le cas ou est le premier
             self.global_list_ports_servers.append(self.port_client)
+            self.global_compteur[self.port_client]=0
             print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
         self.key=crypto_SP.create_key(password)
 
@@ -127,21 +129,34 @@ class Application:
             #ajoute au debut du str sa taille en byte
             return str(len(data)).zfill(self.size_max)+data.decode()
 
-    async def try_send(self,data, destinataire,sent=False):
-        try:
-            reader, writer = await asyncio.open_connection(self.ip_client, destinataire)
-            writer.write(data.encode())
-            print(f"Envoi: {data}")
-            writer.close()
-            if sent:
-                return True
+    async def try_send(self,data, destinataire,sent=False, first=False):
+        i=0
+        while i<2:
+            try:
+                reader, writer = await asyncio.open_connection(self.ip_client, destinataire)
+                writer.write(data.encode())
+                print(f"Envoi: {data}")
+                writer.close()
+                if sent:
+                    return True
+                break
+            except ConnectionRefusedError:
+                print(f"Connection impossible à {destinataire}")
+                if first:
+                    break
+                i+=1
+                if i>=2:
+                    if self.global_compteur[destinataire]<5:
+                        self.global_compteur[destinataire]+=1
+                    else:
+                        del self.global_compteur[destinataire]
+                        self.global_list_ports_servers.remove(destinataire)
+                    print(f"[Debug] global_compteur: {self.global_compteur}")
+                    if sent:
+                        return False
 
-        except ConnectionRefusedError:
-            print(f"Connection impossible à {destinataire}")
-            if sent:
-                return False
 
-    async def send(self, data, destinataires, sent=False, sender=0):
+    async def send(self, data, destinataires, sent=False, sender=0, first=False):
         data=crypto_SP.encrypt(self.key, data)
         data=self.add_lenght_byte(data)
         if type(destinataires)==int:
@@ -149,7 +164,7 @@ class Application:
             if not sent:
                 await self.try_send(data,destinataires)
             else:
-                if await self.try_send(data,destinataires,sent=True):
+                if await self.try_send(data,destinataires,sent=True, first=True):
                     return True
             if sent:
                 return False
@@ -198,6 +213,7 @@ class Application:
                 del data["type"]
                 if not data["port"] in self.global_list_ports_servers:
                     self.global_list_ports_servers.append(data["port"])
+                    self.global_compteur[data["port"]]=0
                     print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
 
                 if self.check_id(data):
@@ -215,6 +231,7 @@ class Application:
                     str_global_list_ports_servers=(str(node1)+","+str(node2)) #pour ip pas besoin de str
                 if not data["port"] in self.global_list_ports_servers:
                     self.global_list_ports_servers.append(data["port"])
+                    self.global_compteur[data["port"]]=0
                     print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
 
 
@@ -235,22 +252,39 @@ class Application:
                     print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
 
 
+            elif data["type"]==3:
+                data["list_port"].remove(self.port_server)
+                for i in self.global_list_ports_servers:
+                    if i in data["list_port"]:
+                        data["list_port"].remove(i)
+                if len(data["list_port"])>0:
+                    self.global_list_ports_servers.append(random.randint(0,len(data["list_port"])-1))
+                    self.global_compteur[random.randint(0,len(data["list_port"])-1)]=0
+                    self.global_list_ports_servers.remove(data["port"])
+                print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
 
-
-
-
-    async def server(self):
+    async def run_server(self):
 
         print(self.global_list_ports_servers)
-        server = await asyncio.start_server(self.reception, self.ip_server, self.port_server) #sers à cette adresse
+        self.server = await asyncio.start_server(self.reception, self.ip_server, self.port_server) #sers à cette adresse
 
-        addr = server.sockets[0].getsockname()
+        addr = self.server.sockets[0].getsockname()
         print(f'Serveur: Serving on {addr}')
 
-        async with server:
-            await server.serve_forever()
+        async with self.server:
+            await self.server.serve_forever()
 
 
+    async def exit_prog(self):
+        data={"type":0,"port":self.port_server,"heure": datetime.utcnow().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":">>> s'est déconnecté <<<"}
+        data=json.dumps(data)
+        await self.send(data, self.global_list_ports_servers)
+        data={"type":3,"port":self.port_server,"list_port":self.global_list_ports_servers}
+        data=json.dumps(data)
+        await self.send(data, self.global_list_ports_servers)
+        self.continue2=False
+        await asyncio.sleep(0.5)
+        self.server.close()
 
 
 
@@ -260,8 +294,10 @@ class Application:
         if self.port_client !=0:
             sent=False
             data_ini=json.dumps({"type":1, "port":self.port_server})
-            while not sent :
-                sent=await self.send(data_ini, self.port_client,True)
+            while not sent and self.continue2:
+                if self.continue1:
+                    await self.exit_prog()
+                sent=await self.send(data_ini, self.port_client,sent=True,first=True)
                 await asyncio.sleep(1)
         i=0
         while self.continue2:
@@ -283,6 +319,8 @@ class Application:
                 else :
                     del self.global_hist_mess[0]
 
+            if self.continue1:
+                await self.exit_prog()
 
 
 
@@ -302,7 +340,7 @@ class Application:
         def exit_fenetre():
             print("Fin du programme")
             fenetre.destroy()
-            self.continue2=False
+            self.continue1=True
 
 
 
@@ -325,14 +363,14 @@ class Application:
         while self.continue2:
 
             await asyncio.sleep(0.05)
-
-            fenetre.update()
+            if not self.continue1:
+                fenetre.update()
 
 
 
     async def main(self):
         print(self.global_list_ports_servers)
-        await asyncio.gather(self.server(),
+        await asyncio.gather(self.run_server(),
                              self.interface(),
                              self.client())
 
