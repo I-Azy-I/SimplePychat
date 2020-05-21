@@ -208,8 +208,8 @@ def start():
     int_demo=IntVar()
     choix_1=Radiobutton(menu_tk, text="JUJU", variable=int_demo, value=1)
     choix_2=Radiobutton(menu_tk, text="MIMILE", variable=int_demo, value=2)
-    choix_3=Radiobutton(menu_tk, text="Pedro", variable=int_demo, value=3)
-    choix_4=Radiobutton(menu_tk, text="MARIT<3", variable=int_demo, value=4)
+    choix_3=Radiobutton(menu_tk, text="Marti", variable=int_demo, value=3)
+    choix_4=Radiobutton(menu_tk, text="Pedro", variable=int_demo, value=4)
     choix_5=Radiobutton(menu_tk, text="JCVD", variable=int_demo, value=5)
 
 
