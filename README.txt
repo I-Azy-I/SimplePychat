@@ -6,4 +6,3 @@ Pour que le programme marche, il faudra d'abord installer un/des modules:
 
 Pour lancer le programme, déplacez-vous dans le terminal jusqu'au dossier SimplePychat et entrez simplement:
       python3 Simple_Pychat_Local
-      
