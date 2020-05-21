@@ -83,14 +83,14 @@ class Application:
                 self.port_server=8888
                 password="1234"
             elif choix==3:
-                self.username="Pedro"
+                self.username="MARTI"
                 self.ip_client="127.0.0.1"
                 self.ip_server="127.0.0.1"
                 self.port_client=8888
                 self.port_server=8889
                 password="1234"
             elif choix==4:
-                self.username="Marit"
+                self.username="Pedro"
                 self.ip_client="127.0.0.1"
                 self.ip_server="127.0.0.1"
                 self.port_client=8888
