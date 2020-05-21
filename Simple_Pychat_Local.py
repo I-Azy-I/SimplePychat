@@ -9,6 +9,7 @@
 
 import asyncio
 from tkinter import *
+from tkinter import filedialog
 import random
 from datetime import datetime
 import json
@@ -16,6 +17,8 @@ import menutkinter
 import base64
 import os
 import sys
+import ntpath
+import codecs #pour envoie de fichier
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
@@ -27,7 +30,8 @@ class Application:
     def __init__(self):
 
         #variable
-        self.size_max=4 #4:max9999 str
+        self.lenght_str_max=1000 #longueur max des string pour l'encryptage
+        self.size_max=6 #4:max9999 str
         self.if_address=False
         self.string_var_entry_message = "" #permet de récuperer message tkinter
         self.if_button_clicked=False   #savoir si le bouton à été cliqué
@@ -35,10 +39,17 @@ class Application:
         self.global_compteur={} #compte les échecs de connections
         self.global_if_mess_received=False
         self.global_hist_mess=[]
+        self.global_hist_files={}
+        self.global_files_path={}
         self.global_correction_hist_mess=True  #corrige les problèmes d'ordre de l'historique des messages
         self.variable_global_hist_mess=0
         self.continue1=False #initialisation de la première étape de la déconnection
         self.continue2=True #initialisation de la deuxième étape de la déconnection
+        self.path="" #chemin ver fichier à envoyer
+        self.path_to_fichiers=sys.path[0]+"/reception_fichiers/"
+
+        self.global_dic_reception_files={}
+        self.global_list_reception_files=[]
 
 
 
@@ -62,6 +73,7 @@ class Application:
                 self.ip_server="127.0.0.1"
                 self.port_client=0 #ne se connecte à personne
                 self.port_server=8887
+                self.salon="ok boomer"
                 password="1234"
             elif choix==2:
                 self.username="MIMILE"
@@ -78,7 +90,7 @@ class Application:
                 self.port_server=8889
                 password="1234"
             elif choix==4:
-                self.username="Polo"
+                self.username="Marit"
                 self.ip_client="127.0.0.1"
                 self.ip_server="127.0.0.1"
                 self.port_client=8888
@@ -156,7 +168,9 @@ class Application:
                         return False
 
 
-    async def send(self, data, destinataires, sent=False, sender=0, first=False):
+    async def send_data(self, data, destinataires, sent=False, sender=0, first=False):
+        print(f"[Debug] taille string : {len(data)}")
+        print(f"[Debug] message envoyé : {data}")
         data=crypto_SP.encrypt(self.key, data)
         data=self.add_lenght_byte(data)
         if type(destinataires)==int:
@@ -182,8 +196,35 @@ class Application:
         else:
             print(f"Erreur fonction send: destinataires n'est ni un int ni une liste (destinatiire {destinataires}, type {type(destinataires)}, contenu {data}")
 
+    async def send(self, data, destinataires, sent=False, sender=0, first=False):
+        #pépare si il y a trop a envoyer
+        if len(data)>self.lenght_str_max:
+            #premiere partie envoyé avec le longueur du message totale
+            id_file=str(len(data)).zfill(self.size_max)+datetime.utcnow().strftime('%H%M%S%f')[:-3]
+            first_data="0"+id_file+data[:self.lenght_str_max]
+            await self.send_data(first_data,destinataires,sender=sender)
+            data=data[self.lenght_str_max:]
+            print("len data")
+            print(len(data))
+            for i in range(round(len(data)/self.lenght_str_max)+1):
+                data_splited="1"+id_file+data[:self.lenght_str_max]
+                await self.send_data(data_splited,destinataires,sender=sender)
+                data=data[self.lenght_str_max:]
+            #envoie le message final
+        else:
+
+            if not sent:
+                await self.send_data( data, destinataires, sent=sent, sender=sender, first=first)
+            else:
+                print(sent)
+                if await self.send_data( data, destinataires, sent=True, sender=sender, first=first):
+                    return True
+                else:
+                    return False
+
     def lenght_data(self,data):
         #return nombre de bytes de l'information reçue
+        print(f"[Debug] data de lenght_data : {data}")
         size = int(data.decode())
         print(f"[Debug] Taille information recu: {size}")
         return size
@@ -196,15 +237,50 @@ class Application:
                 return False
         return True
 
-    async def reception(self, reader, writer):
+    async def fct_reception(self,reader,writer):
         data = await reader.read(self.size_max)
         size= self.lenght_data(data)
-        print(size)
         data = await reader.read(n=size) #serveur attend messages
         data=crypto_SP.decrypt(self.key, data)
-        print(type(data))
         if isinstance(data, bytes):
             data=data.decode()
+            return data
+        else:
+            return True
+
+    def join_data(self,data):
+
+        if data[0]=="0":
+            print("[Debug] premier bout de fichier recu")
+            id_new_file=int(data[1:1+self.size_max+9])
+            print(f"[Debug] id_new_file {id_new_file}")
+            self.global_dic_reception_files[id_new_file]=len(self.global_list_reception_files)
+            self.global_list_reception_files.append([data[self.size_max+10:]])
+            return True
+        elif data[0]=="1":
+            print("[Debug] Suite de fichier recu")
+            lenght_str=int(data[1:self.size_max+1])#len_str est la longueur du fichier au total
+            id_file=int(data[1:(1+self.size_max+9)])
+            self.global_list_reception_files[self.global_dic_reception_files[id_file]].append(data[self.size_max+10:])# 1 + size max + 9 de l'identifiant
+            if len(self.global_list_reception_files[self.global_dic_reception_files[id_file]])>=(lenght_str/self.lenght_str_max):
+                print("Fusion fichier")
+                data=""
+                for i in self.global_list_reception_files[self.global_dic_reception_files[id_file]]:
+                    data=data+i
+                del self.global_list_reception_files[self.global_dic_reception_files[id_file]]
+                del self.global_dic_reception_files[id_file]
+                return data
+            else:
+                return True
+        else:
+            return data
+
+    async def reception(self, reader, writer):
+        data=await self.fct_reception(reader,writer)
+        data =self.join_data(data)
+
+        if not data==True:
+
             addr = writer.get_extra_info('peername') #inutile
             writer.close() #ferme la connexion
             print(f"Serveur: Received {data!r} from {addr[0]}")
@@ -239,8 +315,9 @@ class Application:
                 data_to_send=json.dumps({"type":2, "new_nodes":str_global_list_ports_servers, "salon":self.salon, "hist_mess":self.global_hist_mess}) #à trouver une meilleure appelation
                 await self.send(data_to_send,data["port"])
 
-            elif data["type"]==2:
+            elif data["type"]==2: #reception des information pour les nouvelles connections
                 self.salon=data["salon"]
+                self.label_username["text"]=self.salon
                 self.global_hist_mess=data["hist_mess"]
                 self.variable_global_hist_mess=len(data["hist_mess"])
                 for i in data["hist_mess"]:
@@ -252,7 +329,7 @@ class Application:
                     print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
 
 
-            elif data["type"]==3:
+            elif data["type"]==3: #déconexions
                 data["list_port"].remove(self.port_server)
                 for i in self.global_list_ports_servers:
                     if i in data["list_port"]:
@@ -262,13 +339,50 @@ class Application:
                     self.global_compteur[random.randint(0,len(data["list_port"])-1)]=0
                     self.global_list_ports_servers.remove(data["port"])
                 print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
+            elif data["type"]==4:#requete d'envoie fichier
+
+                if not self.global_hist_files.get(data["id_file"],False):
+                    self.global_hist_files[data["id_file"]]=True
+                    #envoier que l'on a pas le fichir en question
+                    data2={"type":5, "id_file":data["id_file"], "port":self.port_server, "name_file":data["name_file"]}
+                    await self.send(json.dumps(data2),data["port"])
+            elif data["type"]==5:#envoie du fichier
+                with open(self.global_files_path[data["id_file"]],mode="rb") as file:
+                    file=file.read()
+                file = codecs.encode(file, "base64").decode()
+                await self.send(json.dumps({"type":6,"id_file":data["id_file"],"port":self.port_server, "name_file":data["name_file"],"file":file}),data["port"])
+            elif data["type"]==6:#reception et renvoie du fichier
+                name_file=data["name_file"]
+                i=1
+                while True:
+                    if name_file in os.listdir(self.path_to_fichiers):
+                        name_file=name_file.split(".")
+                        if i>1:
+                            name_file[-2]=name_file[-2][:(name_file[-2].find(f"_copie({i-1})"))]
+                        name_file[-2]= name_file[-2]+f"_copie({i})"
+                        name_file=".".join(name_file)
+                        i+=1
+                    else:
+                        break
+                file_path=self.path_to_fichiers+name_file
+                with open(file_path ,mode="wb") as f:
+                    f.write(codecs.decode(data["file"].encode(), "base64"))
+
+                self.global_files_path[data["id_file"]]=file_path
+                data2={"type":4,"name_file":data["name_file"], "id_file":data["id_file"], "port":self.port_server}
+                await self.send(json.dumps(data2), self.global_list_ports_servers,sender=data["port"])
+
+
+
+
+
 
     async def run_server(self):
 
         print(self.global_list_ports_servers)
         self.server = await asyncio.start_server(self.reception, self.ip_server, self.port_server) #sers à cette adresse
-
         addr = self.server.sockets[0].getsockname()
+
         print(f'Serveur: Serving on {addr}')
 
         async with self.server:
@@ -286,18 +400,21 @@ class Application:
         await asyncio.sleep(0.5)
         self.server.close()
 
-
+    def path_leaf(self,path):
+        head, tail = ntpath.split(path)
+        return tail or ntpath.basename(head)
 
     async def client(self):
 
         print(self.global_list_ports_servers)
+
         if self.port_client !=0:
             sent=False
             data_ini=json.dumps({"type":1, "port":self.port_server})
             while not sent and self.continue2:
+                sent=await self.send(data_ini, self.port_client,sent=True,first=True)
                 if self.continue1:
                     await self.exit_prog()
-                sent=await self.send(data_ini, self.port_client,sent=True,first=True)
                 await asyncio.sleep(1)
         i=0
         while self.continue2:
@@ -314,10 +431,21 @@ class Application:
 
                 self.interface_message.insert(END, (datetime.now().strftime('[%H:%M] '))+self.global_hist_mess[self.variable_global_hist_mess]["pseudo"]+self.global_hist_mess[self.variable_global_hist_mess]["message"])
                 print(self.global_hist_mess[self.variable_global_hist_mess]["message"])
-                if self.variable_global_hist_mess<5:
+                if self.variable_global_hist_mess<85:
+                    print(self.variable_global_hist_mess)
                     self.variable_global_hist_mess+=1
                 else :
                     del self.global_hist_mess[0]
+            if self.path!="":
+                name_file=self.path_leaf(self.path)
+                id_file=datetime.utcnow().strftime('%H%M%S%f')[:-3]+self.username+name_file
+                print(f"[Debug] name_file{name_file}")
+                self.global_hist_files[id_file]=True
+                self.global_files_path[id_file]=self.path
+                data={"type":4,"name_file":name_file, "id_file":id_file, "port":self.port_server}
+                await self.send(json.dumps(data), self.global_list_ports_servers)
+                self.path=""
+
 
             if self.continue1:
                 await self.exit_prog()
@@ -333,7 +461,7 @@ class Application:
 
     async def interface(self): #création de l'interface
         print(self.global_list_ports_servers)
-        def fct_button_send():
+        def fct_button_send(event=""):
             self.string_var_entry_message=var_entry_message.get()
             self.if_button_clicked=True
             var_entry_message.set("")
@@ -341,20 +469,42 @@ class Application:
             print("Fin du programme")
             fenetre.destroy()
             self.continue1=True
+        def button_file_pessed():
+            fenetre.filename =  filedialog.askopenfilename(title = "Select file",filetypes = (("zip files","*.zip"),("jpeg files","*.jpeg"),("txt files","*.txt"),("gif files","*.gif"),("all files","*.*")))
+            self.path = fenetre.filename
 
 
-
+        width_fenetre=50
+        height_fenetre=25
+        width_button=2
 
         fenetre = Tk()
+
+        menubar = Menu(fenetre)
+        menu1 = Menu(menubar, tearoff=0)
+        menu1.add_command(label="Connections")
+        menu1.add_command(label="Info")
+        menu1.add_command(label="Log")
+        menubar.add_cascade(label="Info", menu=menu1)
+        fenetre.config(menu=menubar)
+
+
+
         var_entry_message=StringVar()
-        label_username = Label(fenetre, text=f"{self.username}")
-        label_username.pack()
-        self.interface_message = Listbox(fenetre)
-        self.interface_message.pack()
-        entry_message = Entry(fenetre, textvariable=var_entry_message, width=30)
-        entry_message.pack()
-        button_send= Button(fenetre, command=fct_button_send)
-        button_send.pack()
+        self.label_username = Label(fenetre, text=f"{self.salon}")
+        self.label_username.grid(row=0)
+
+        self.interface_message = Listbox(fenetre,width=width_fenetre, height=height_fenetre)
+        self.interface_message.grid(row=1)
+
+        entry_message = Entry(fenetre, textvariable=var_entry_message, width=int(width_fenetre-(width_button*2)-8))
+        entry_message.bind("<Return>", fct_button_send)
+        entry_message.grid(row=2)
+
+        button_send= Button(fenetre, text="↵",width=width_button, command=fct_button_send)
+        button_send.grid(row=2,sticky=E)
+        button_file=Button(fenetre, text="┌↑┐",width=width_button,command= button_file_pessed)
+        button_file.grid(row=2,sticky=W)
 
         fenetre.protocol('WM_DELETE_WINDOW', exit_fenetre)
 
