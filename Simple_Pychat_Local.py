@@ -104,6 +104,13 @@ class Application:
                 self.port_client=8886
                 self.port_server=8885
                 password="1234"
+            elif choix==6:
+                self.username="Polo"
+                self.ip_client="127.0.0.1"
+                self.ip_server="127.0.0.1"
+                self.port_client=8885
+                self.port_server=8884
+                password="1234"
             else:
                 self.username="SIMPLE PYCHAT"
                 self.ip_client="127.0.0.1"
@@ -324,10 +331,13 @@ class Application:
                     self.interface_message.insert(END,("["+i["heure"][:2]+":"+i["heure"][2:4]+"] "+i["pseudo"]+i["message"]))
                 print(self.global_hist_mess)
 
+
                 if data["new_nodes"] !="":
                     self.global_list_ports_servers.extend([int(i) for i in data["new_nodes"].split(",")]) #le int i ne sers à rien si l'on utilise des ip
                     print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
-
+                data={"type":0,"port":self.port_server,"heure": datetime.utcnow().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":">>> s'est connecté <<<","color":"green"}
+                data=json.dumps(data)
+                await self.send(data, self.global_list_ports_servers)
 
             elif data["type"]==3: #déconexions
                 data["list_port"].remove(self.port_server)
@@ -339,6 +349,8 @@ class Application:
                     self.global_compteur[random.randint(0,len(data["list_port"])-1)]=0
                     self.global_list_ports_servers.remove(data["port"])
                 print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
+
+
             elif data["type"]==4:#requete d'envoie fichier
 
                 if not self.global_hist_files.get(data["id_file"],False):
@@ -350,7 +362,7 @@ class Application:
                 with open(self.global_files_path[data["id_file"]],mode="rb") as file:
                     file=file.read()
                 file = codecs.encode(file, "base64").decode()
-                await self.send(json.dumps({"type":6,"id_file":data["id_file"],"port":self.port_server, "name_file":data["name_file"],"file":file}),data["port"])
+                await self.send(json.dumps({"type":6,"username":self.username,"id_file":data["id_file"],"port":self.port_server, "name_file":data["name_file"],"file":file}),data["port"])
             elif data["type"]==6:#reception et renvoie du fichier
                 name_file=data["name_file"]
                 i=1
@@ -367,7 +379,8 @@ class Application:
                 file_path=self.path_to_fichiers+name_file
                 with open(file_path ,mode="wb") as f:
                     f.write(codecs.decode(data["file"].encode(), "base64"))
-
+                self.interface_message.insert(END,(datetime.now().strftime('[%H:%M] ')+"'"+data["name_file"]+"' reçu de " +data["username"]))
+                self.interface_message.itemconfig(END, foreground="orange")
                 self.global_files_path[data["id_file"]]=file_path
                 data2={"type":4,"name_file":data["name_file"], "id_file":data["id_file"], "port":self.port_server}
                 await self.send(json.dumps(data2), self.global_list_ports_servers,sender=data["port"])
@@ -390,7 +403,7 @@ class Application:
 
 
     async def exit_prog(self):
-        data={"type":0,"port":self.port_server,"heure": datetime.utcnow().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":">>> s'est déconnecté <<<"}
+        data={"type":0,"port":self.port_server,"heure": datetime.utcnow().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":">>> s'est déconnecté <<<","color":"red"}
         data=json.dumps(data)
         await self.send(data, self.global_list_ports_servers)
         data={"type":3,"port":self.port_server,"list_port":self.global_list_ports_servers}
@@ -421,21 +434,24 @@ class Application:
             await asyncio.sleep(0.1)
             if self.if_button_clicked: #si le boutton est cliqué
                 self.if_button_clicked = False
-                data={"port":self.port_server,"heure": datetime.utcnow().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":("> "+ self.string_var_entry_message)}
+                data={"port":self.port_server,"heure": datetime.utcnow().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":("> "+ self.string_var_entry_message),"color":""}
                 self.global_hist_mess.append(data)
 
             if self.variable_global_hist_mess<len(self.global_hist_mess):
                 data=self.global_hist_mess[self.variable_global_hist_mess]
                 data["type"]=0
                 await self.send(json.dumps(data),self.global_list_ports_servers,sent=False, sender=data["port"])
-
                 self.interface_message.insert(END, (datetime.now().strftime('[%H:%M] '))+self.global_hist_mess[self.variable_global_hist_mess]["pseudo"]+self.global_hist_mess[self.variable_global_hist_mess]["message"])
+                if data["color"]!="":
+                    self.interface_message.itemconfig(END, foreground=data["color"])
+
                 print(self.global_hist_mess[self.variable_global_hist_mess]["message"])
-                if self.variable_global_hist_mess<85:
+                if self.variable_global_hist_mess<50:
                     print(self.variable_global_hist_mess)
                     self.variable_global_hist_mess+=1
                 else :
                     del self.global_hist_mess[0]
+            #envoie fichier
             if self.path!="":
                 name_file=self.path_leaf(self.path)
                 id_file=datetime.utcnow().strftime('%H%M%S%f')[:-3]+self.username+name_file
@@ -443,6 +459,8 @@ class Application:
                 self.global_hist_files[id_file]=True
                 self.global_files_path[id_file]=self.path
                 data={"type":4,"name_file":name_file, "id_file":id_file, "port":self.port_server}
+                self.interface_message.insert(END,(datetime.now().strftime('[%H:%M] ')+"'"+data["name_file"]+"' envoyé"))
+                self.interface_message.itemconfig(END, foreground="orange")
                 await self.send(json.dumps(data), self.global_list_ports_servers)
                 self.path=""
 
