@@ -1,4 +1,6 @@
 from tkinter import *
+from PIL import ImageTk
+
 
 
 
@@ -223,3 +225,13 @@ def start():
             menu_tk.destroy()
             return config
         menu_tk.update()
+
+
+
+def display_picture_window(path):
+    print(path)
+    root = Tk()
+    img = ImageTk.PhotoImage(file=path)
+    image = Label(root, image=img)
+    image.pack()
+    root.mainloop()

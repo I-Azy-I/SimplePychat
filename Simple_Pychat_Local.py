@@ -19,6 +19,7 @@ import os
 import sys
 import ntpath
 import codecs #pour envoie de fichier
+from PIL import Image
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
@@ -50,6 +51,7 @@ class Application:
 
         self.global_dic_reception_files={}
         self.global_list_reception_files=[]
+        self.global_path_file_listbox={}
 
 
 
@@ -73,7 +75,7 @@ class Application:
                 self.ip_server="127.0.0.1"
                 self.port_client=0 #ne se connecte à personne
                 self.port_server=8887
-                self.salon="ok boomer"
+                self.salon="Nom du salon"
                 password="1234"
             elif choix==2:
                 self.username="MIMILE"
@@ -207,16 +209,18 @@ class Application:
         #pépare si il y a trop a envoyer
         if len(data)>self.lenght_str_max:
             #premiere partie envoyé avec le longueur du message totale
-            id_file=str(len(data)).zfill(self.size_max)+datetime.utcnow().strftime('%H%M%S%f')[:-3]
+            id_file=str(len(data[:self.size_max])).zfill(self.size_max)+datetime.utcnow().strftime('%H%M%S%f')[:-3]
             first_data="0"+id_file+data[:self.lenght_str_max]
             await self.send_data(first_data,destinataires,sender=sender)
             data=data[self.lenght_str_max:]
             print("len data")
             print(len(data))
-            for i in range(round(len(data)/self.lenght_str_max)+1):
+            for i in range(round(len(data)/self.lenght_str_max)):
                 data_splited="1"+id_file+data[:self.lenght_str_max]
                 await self.send_data(data_splited,destinataires,sender=sender)
                 data=data[self.lenght_str_max:]
+            data_splited="2"+id_file+data
+            await self.send_data(data_splited,destinataires,sender=sender)
             #envoie le message final
         else:
 
@@ -269,16 +273,18 @@ class Application:
             lenght_str=int(data[1:self.size_max+1])#len_str est la longueur du fichier au total
             id_file=int(data[1:(1+self.size_max+9)])
             self.global_list_reception_files[self.global_dic_reception_files[id_file]].append(data[self.size_max+10:])# 1 + size max + 9 de l'identifiant
-            if len(self.global_list_reception_files[self.global_dic_reception_files[id_file]])>=(lenght_str/self.lenght_str_max):
-                print("Fusion fichier")
-                data=""
-                for i in self.global_list_reception_files[self.global_dic_reception_files[id_file]]:
-                    data=data+i
-                del self.global_list_reception_files[self.global_dic_reception_files[id_file]]
-                del self.global_dic_reception_files[id_file]
-                return data
-            else:
-                return True
+            return True
+        elif data[0]=="2":
+            lenght_str=int(data[1:self.size_max+1])#len_str est la longueur du fichier au total
+            id_file=int(data[1:(1+self.size_max+9)])
+            self.global_list_reception_files[self.global_dic_reception_files[id_file]].append(data[self.size_max+10:])# 1 + size max + 9 de l'identifiant
+            print("Fusion fichier")
+            data=""
+            for i in self.global_list_reception_files[self.global_dic_reception_files[id_file]]:
+                data=data+i
+            del self.global_list_reception_files[self.global_dic_reception_files[id_file]]
+            del self.global_dic_reception_files[id_file]
+            return data
         else:
             return data
 
@@ -290,7 +296,7 @@ class Application:
 
             addr = writer.get_extra_info('peername') #inutile
             writer.close() #ferme la connexion
-            print(f"Serveur: Received {data!r} from {addr[0]}")
+            print(f"Serveur: Received {data[:500]} from {addr[0]}")
             data = json.loads(data)
             if data["type"]==0: #recois un message, ajoute à la listebox, si c'est un nouveau noeud il faut l'ajouter dans sa liste des noeuds connectés
                 del data["type"]
@@ -324,7 +330,7 @@ class Application:
 
             elif data["type"]==2: #reception des information pour les nouvelles connections
                 self.salon=data["salon"]
-                self.label_username["text"]=self.salon
+                self.label_username["text"]=(self.salon+" / "+self.username)
                 self.global_hist_mess=data["hist_mess"]
                 self.variable_global_hist_mess=len(data["hist_mess"])
                 for i in data["hist_mess"]:
@@ -353,7 +359,7 @@ class Application:
 
             elif data["type"]==4:#requete d'envoie fichier
 
-                if not self.global_hist_files.get(data["id_file"],False):
+                if not data["id_file"] in self.global_hist_files:
                     self.global_hist_files[data["id_file"]]=True
                     #envoier que l'on a pas le fichir en question
                     data2={"type":5, "id_file":data["id_file"], "port":self.port_server, "name_file":data["name_file"]}
@@ -381,6 +387,11 @@ class Application:
                     f.write(codecs.decode(data["file"].encode(), "base64"))
                 self.interface_message.insert(END,(datetime.now().strftime('[%H:%M] ')+"'"+data["name_file"]+"' reçu de " +data["username"]))
                 self.interface_message.itemconfig(END, foreground="orange")
+                list_accepted_picture_format=["png","jpeg","jpg","gif"]
+                if data["name_file"].split(".")[-1] in list_accepted_picture_format:
+                    self.interface_message.insert(END,(datetime.now().strftime(">>> Cliquez pour avoir un aperçu <<<")))
+                    self.interface_message.itemconfig(END, foreground="orange")
+                    self.global_path_file_listbox[(self.interface_message.size()-1)]=name_file
                 self.global_files_path[data["id_file"]]=file_path
                 data2={"type":4,"name_file":data["name_file"], "id_file":data["id_file"], "port":self.port_server}
                 await self.send(json.dumps(data2), self.global_list_ports_servers,sender=data["port"])
@@ -478,6 +489,18 @@ class Application:
 
 
     async def interface(self): #création de l'interface
+        def display_picture(event=""):
+            line_selected=self.interface_message.curselection()
+            print("[debug] listbox selectioné")
+            print(line_selected)
+            if len(line_selected)==1:
+                line_selected=line_selected[0]
+                print("[debug] ligne listbox selectionée")
+                print(f"[debug] global_path_file_listbox global_path_file_listbox: {self.global_path_file_listbox}")
+                if line_selected in self.global_path_file_listbox:
+                    print("[debug] Affichage image")
+                    img = Image.open((self.path_to_fichiers+self.global_path_file_listbox[line_selected]))
+                    img.show()
         print(self.global_list_ports_servers)
         def fct_button_send(event=""):
             self.string_var_entry_message=var_entry_message.get()
@@ -488,7 +511,7 @@ class Application:
             fenetre.destroy()
             self.continue1=True
         def button_file_pessed():
-            fenetre.filename =  filedialog.askopenfilename(title = "Select file",filetypes = (("zip files","*.zip"),("jpeg files","*.jpeg"),("txt files","*.txt"),("gif files","*.gif"),("all files","*.*")))
+            fenetre.filename =  filedialog.askopenfilename(title = "Select file",filetypes = (("zip files","*.zip"),("gif files","*.gif"),("jpeg files","*.jpeg"),("jpg files","*.jpg"),("png files","*.png"),("txt files","*.txt"),("gif files","*.gif"),("all files","*.*")))
             self.path = fenetre.filename
 
 
@@ -509,11 +532,14 @@ class Application:
 
 
         var_entry_message=StringVar()
-        self.label_username = Label(fenetre, text=f"{self.salon}")
+        self.label_username = Label(fenetre, text=self.salon+" / "+self.username)
         self.label_username.grid(row=0)
 
-        self.interface_message = Listbox(fenetre,width=width_fenetre, height=height_fenetre)
+        self.interface_message = Listbox(fenetre,width=width_fenetre, height=height_fenetre,selectmode='single')
+        self.interface_message.bind("<Button-1>", display_picture)
+        self.interface_message.bind('<FocusOut>', lambda e: self.interface_message.selection_clear(0, END))
         self.interface_message.grid(row=1)
+
 
         entry_message = Entry(fenetre, textvariable=var_entry_message, width=int(width_fenetre-(width_button*2)-8))
         entry_message.bind("<Return>", fct_button_send)
@@ -529,6 +555,7 @@ class Application:
         fenetre.update()
 
         while self.continue2:
+
 
             await asyncio.sleep(0.05)
             if not self.continue1:
