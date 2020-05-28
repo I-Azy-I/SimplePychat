@@ -31,6 +31,7 @@ class Application:
     def __init__(self):
 
         #variable
+        self.size_max_hist_mess=50
         self.lenght_str_max=1000 #longueur max des string pour l'encryptage
         self.size_max=6 #4:max9999 str
         self.if_address=False
@@ -167,14 +168,15 @@ class Application:
                     break
                 i+=1
                 if i>=2:
-                    if self.global_compteur[destinataire]<5:
-                        self.global_compteur[destinataire]+=1
-                    else:
-                        del self.global_compteur[destinataire]
-                        self.global_list_ports_servers.remove(destinataire)
-                    print(f"[Debug] global_compteur: {self.global_compteur}")
-                    if sent:
-                        return False
+                    if destinataire in self.global_compteur:
+                        if self.global_compteur[destinataire]<5:
+                            self.global_compteur[destinataire]+=1
+                        else:
+                            del self.global_compteur[destinataire]
+                            self.global_list_ports_servers.remove(destinataire)
+                        print(f"[Debug] global_compteur: {self.global_compteur}")
+                if sent:
+                    return False
 
 
     async def send_data(self, data, destinataires, sent=False, sender=0, first=False):
@@ -298,19 +300,30 @@ class Application:
             writer.close() #ferme la connexion
             print(f"Serveur: Received {data[:500]} from {addr[0]}")
             data = json.loads(data)
+
             if data["type"]==0: #recois un message, ajoute à la listebox, si c'est un nouveau noeud il faut l'ajouter dans sa liste des noeuds connectés
-                del data["type"]
                 if not data["port"] in self.global_list_ports_servers:
                     self.global_list_ports_servers.append(data["port"])
                     self.global_compteur[data["port"]]=0
                     print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
 
+
                 if self.check_id(data):
+                    if len(self.global_hist_mess)>=self.size_max_hist_mess:
+                        del self.global_hist_mess[0]
                     self.global_hist_mess.append(data)
+                    self.interface_message.insert(END, (datetime.now().strftime('[%H:%M] '))+data["pseudo"]+data["message"])
+                    if data["color"]!="":
+                        self.interface_message.itemconfig(END, foreground=data["color"])
+                    sender=data["port"]
+                    data["port"]=self.port_server
+                    await self.send(json.dumps(data),self.global_list_ports_servers,sent=False, sender=sender)
+
 
             elif data["type"]==1: #nouvelle connection -->  envoyer jusqu'a 2 noeuds, il faut encore controler que l'on envoie pas sont propre port
 
             #transfert des noeuds
+
                 if len(self.global_list_ports_servers)==0:#si aucun noeud(port/ip) a proposé
                     str_global_list_ports_servers=""
                 elif len(self.global_list_ports_servers)==1:#si 1 noeud(port/ip) a proposé
@@ -335,6 +348,8 @@ class Application:
                 self.variable_global_hist_mess=len(data["hist_mess"])
                 for i in data["hist_mess"]:
                     self.interface_message.insert(END,("["+i["heure"][:2]+":"+i["heure"][2:4]+"] "+i["pseudo"]+i["message"]))
+                    if i["color"]!="":
+                        self.interface_message.itemconfig(END, foreground=i["color"])
                 print(self.global_hist_mess)
 
 
@@ -342,7 +357,14 @@ class Application:
                     self.global_list_ports_servers.extend([int(i) for i in data["new_nodes"].split(",")]) #le int i ne sers à rien si l'on utilise des ip
                     print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
                 data={"type":0,"port":self.port_server,"heure": datetime.utcnow().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":">>> s'est connecté <<<","color":"green"}
+                if len(self.global_hist_mess)>=self.size_max_hist_mess:
+                    del self.global_hist_mess[0]
+                self.global_hist_mess.append(data)
+                self.interface_message.insert(END, (datetime.now().strftime('[%H:%M] '))+data["pseudo"]+data["message"])
+                if data["color"]!="":
+                    self.interface_message.itemconfig(END, foreground=data["color"])
                 data=json.dumps(data)
+
                 await self.send(data, self.global_list_ports_servers)
 
             elif data["type"]==3: #déconexions
@@ -445,10 +467,16 @@ class Application:
             await asyncio.sleep(0.1)
             if self.if_button_clicked: #si le boutton est cliqué
                 self.if_button_clicked = False
-                data={"port":self.port_server,"heure": datetime.utcnow().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":("> "+ self.string_var_entry_message),"color":""}
+                data={"type":0,"port":self.port_server,"heure": datetime.utcnow().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":("> "+ self.string_var_entry_message),"color":""}
+                if len(self.global_hist_mess)>=self.size_max_hist_mess:
+                    del self.global_hist_mess[0]
                 self.global_hist_mess.append(data)
+                self.interface_message.insert(END, (datetime.now().strftime('[%H:%M] '))+data["pseudo"]+data["message"])
+                if data["color"]!="":
+                    self.interface_message.itemconfig(END, foreground=data["color"])
+                await self.send(json.dumps(data),self.global_list_ports_servers)
 
-            if self.variable_global_hist_mess<len(self.global_hist_mess):
+            if False:
                 data=self.global_hist_mess[self.variable_global_hist_mess]
                 data["type"]=0
                 await self.send(json.dumps(data),self.global_list_ports_servers,sent=False, sender=data["port"])
@@ -472,8 +500,9 @@ class Application:
                 data={"type":4,"name_file":name_file, "id_file":id_file, "port":self.port_server}
                 self.interface_message.insert(END,(datetime.now().strftime('[%H:%M] ')+"'"+data["name_file"]+"' envoyé"))
                 self.interface_message.itemconfig(END, foreground="orange")
-                await self.send(json.dumps(data), self.global_list_ports_servers)
                 self.path=""
+                await self.send(json.dumps(data), self.global_list_ports_servers)
+
 
 
             if self.continue1:
