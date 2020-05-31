@@ -65,7 +65,8 @@ class Application:
 
 
     def configuration(self,config):
-        print(config)
+
+
         # 0 démo, 1 créer, 2 rejoindre
         #config-> 0 type, choix; 1 type, pseudo, mon_port, salon, password ;2 type pseudo, mon_port, port_serveur, password
         if config["type"]==0:
@@ -445,7 +446,6 @@ class Application:
         self.continue2=False
         await asyncio.sleep(0.5)
         self.server.close()
-
     def path_leaf(self,path):
         head, tail = ntpath.split(path)
         return tail or ntpath.basename(head)
@@ -599,7 +599,8 @@ class Application:
                              self.client())
 
     def run(self):
-        self.configuration(menutkinter.start())
+
+        self.configuration(menutkinter.Menu_tk.start(self))
         asyncio.run(self.main())
 
 
