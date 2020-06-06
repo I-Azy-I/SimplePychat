@@ -85,6 +85,9 @@ class Menu_tk:
             choix_3.grid_forget()
             choix_4.grid_forget()
             choix_5.grid_forget()
+            choix_6.grid_forget()
+            choix_7.grid_forget()
+            choix_8.grid_forget()
             b_demo.grid_forget()
 
         def b_creer_pressed():
@@ -196,7 +199,10 @@ class Menu_tk:
             choix_3.grid(row=3,column=0,sticky=W)
             choix_4.grid(row=4,column=0,sticky=W)
             choix_5.grid(row=5,column=0,sticky=W)
-            b_demo.grid(row=6,column=0,sticky=W)
+            choix_6.grid(row=6,column=0,sticky=W)
+            choix_7.grid(row=7,column=0,sticky=W)
+            choix_8.grid(row=8,column=0,sticky=W)
+            b_demo.grid(row=9,column=0,sticky=W)
 
 
             self.type_menu=3
@@ -244,7 +250,7 @@ class Menu_tk:
         tkvar_mon_port=StringVar()
         input_mon_port = Entry(menu_tk, textvariable=tkvar_mon_port, width=30)
 
-        lab_port_serveur= Label(menu_tk, text="Port seveur:")
+        lab_port_serveur= Label(menu_tk, text="Port serveur:")
         tkvar_port_serveur=StringVar()
         input_port_serveur = Entry(menu_tk, textvariable=tkvar_port_serveur, width=30)
 
@@ -262,11 +268,14 @@ class Menu_tk:
 
 
         int_demo=IntVar()
-        choix_1=Radiobutton(menu_tk, text="JUJU", variable=int_demo, value=1)
-        choix_2=Radiobutton(menu_tk, text="MIMILE", variable=int_demo, value=2)
-        choix_3=Radiobutton(menu_tk, text="Marti", variable=int_demo, value=3)
+        choix_1=Radiobutton(menu_tk, text="Julien", variable=int_demo, value=1)
+        choix_2=Radiobutton(menu_tk, text="Emile", variable=int_demo, value=2)
+        choix_3=Radiobutton(menu_tk, text="Marit", variable=int_demo, value=3)
         choix_4=Radiobutton(menu_tk, text="Pedro", variable=int_demo, value=4)
-        choix_5=Radiobutton(menu_tk, text="JCVD", variable=int_demo, value=5)
+        choix_5=Radiobutton(menu_tk, text="Captaine_Macaron", variable=int_demo, value=5)
+        choix_6=Radiobutton(menu_tk, text="Polo", variable=int_demo, value=6)
+        choix_7=Radiobutton(menu_tk, text="Philippos", variable=int_demo, value=7)
+        choix_8=Radiobutton(menu_tk, text="Pépito_Magique", variable=int_demo, value=8)
 
 
 

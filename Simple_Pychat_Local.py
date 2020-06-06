@@ -72,56 +72,70 @@ class Application:
         if config["type"]==0:
             choix=config["choix"]
             if choix == 1:
-                self.username="JUJU"
+                self.username="Julien"
                 self.ip_client="127.0.0.1"
                 self.ip_server="127.0.0.1"
                 self.port_client=0 #ne se connecte à personne
                 self.port_server=8887
-                self.salon="Nom du salon"
-                password="1234"
+                self.salon="Salon"
+                password="123456789"
             elif choix==2:
-                self.username="MIMILE"
+                self.username="Emile"
                 self.ip_client="127.0.0.1"
                 self.ip_server="127.0.0.1"
                 self.port_client=8887
                 self.port_server=8888
-                password="1234"
+                password="123456789"
             elif choix==3:
-                self.username="MARTI"
+                self.username="Marit"
                 self.ip_client="127.0.0.1"
                 self.ip_server="127.0.0.1"
                 self.port_client=8888
                 self.port_server=8889
-                password="1234"
+                password="123456789"
             elif choix==4:
                 self.username="Pedro"
                 self.ip_client="127.0.0.1"
                 self.ip_server="127.0.0.1"
                 self.port_client=8888
                 self.port_server=8886
-                password="1234"
+                password="123456789"
 
             elif choix==5:
-                self.username="JCVD"
+                self.username="Captaine_Macaron"
                 self.ip_client="127.0.0.1"
                 self.ip_server="127.0.0.1"
                 self.port_client=8886
                 self.port_server=8885
-                password="1234"
+                password="123456789"
             elif choix==6:
                 self.username="Polo"
                 self.ip_client="127.0.0.1"
                 self.ip_server="127.0.0.1"
-                self.port_client=8885
+                self.port_client=8886
                 self.port_server=8884
-                password="1234"
+                password="123456789"
+            elif choix==7:
+                self.username="Philippos"
+                self.ip_client="127.0.0.1"
+                self.ip_server="127.0.0.1"
+                self.port_client=8885
+                self.port_server=8882
+                password="123456789"
+            elif choix==8:
+                self.username="Pépito_Magique"
+                self.ip_client="127.0.0.1"
+                self.ip_server="127.0.0.1"
+                self.port_client=8889
+                self.port_server=8883
+                password="123456789"
             else:
                 self.username="SIMPLE PYCHAT"
                 self.ip_client="127.0.0.1"
                 self.ip_server="127.0.0.1"
                 self.port_client=8888
                 self.port_server=8888
-                password="1234"
+                password="123456789"
         elif config["type"]==1:
             self.username=config["pseudo"]
             self.ip_client="127.0.0.1" #prédéfini car en local
@@ -348,7 +362,7 @@ class Application:
                 self.global_hist_mess=data["hist_mess"]
                 self.variable_global_hist_mess=len(data["hist_mess"])
                 for i in data["hist_mess"]:
-                    self.interface_message.insert(END,("["+i["heure"][:2]+":"+i["heure"][2:4]+"] "+i["pseudo"]+i["message"]))
+                    self.interface_message.insert(END,("["+str(int(i["heure"][:2])+2)+":"+i["heure"][2:4]+"] "+i["pseudo"]+i["message"]))
                     if i["color"]!="":
                         self.interface_message.itemconfig(END, foreground=i["color"])
                 print(self.global_hist_mess)
@@ -374,10 +388,11 @@ class Application:
                     if i in data["list_port"]:
                         data["list_port"].remove(i)
                 if len(data["list_port"])>0:
-                    self.global_list_ports_servers.append(random.randint(0,len(data["list_port"])-1))
-                    self.global_compteur[random.randint(0,len(data["list_port"])-1)]=0
-                    self.global_list_ports_servers.remove(data["port"])
-                print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
+                    new_port=random.randint(0,len(data["list_port"])-1)
+                    self.global_list_ports_servers.append(new_port)
+                    self.global_compteur[new_port]=0
+                self.global_list_ports_servers.remove(data["port"])
+                print(f"{self.username}[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
 
 
             elif data["type"]==4:#requete d'envoie fichier
@@ -440,6 +455,7 @@ class Application:
         data={"type":0,"port":self.port_server,"heure": datetime.utcnow().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":">>> s'est déconnecté <<<","color":"red"}
         data=json.dumps(data)
         await self.send(data, self.global_list_ports_servers)
+        await asyncio.sleep(1)
         data={"type":3,"port":self.port_server,"list_port":self.global_list_ports_servers}
         data=json.dumps(data)
         await self.send(data, self.global_list_ports_servers)
@@ -520,12 +536,10 @@ class Application:
     async def interface(self): #création de l'interface
         def display_picture(event=""):
             line_selected=self.interface_message.curselection()
-            print("[debug] listbox selectioné")
+            print(f"{self.username} [Debug] global_list_ports_servers: {self.global_list_ports_servers}")
             print(line_selected)
             if len(line_selected)==1:
                 line_selected=line_selected[0]
-                print("[debug] ligne listbox selectionée")
-                print(f"[debug] global_path_file_listbox global_path_file_listbox: {self.global_path_file_listbox}")
                 if line_selected in self.global_path_file_listbox:
                     print("[debug] Affichage image")
                     img = Image.open((self.path_to_fichiers+self.global_path_file_listbox[line_selected]))
@@ -541,7 +555,9 @@ class Application:
             self.continue1=True
         def button_file_pessed():
             fenetre.filename =  filedialog.askopenfilename(title = "Select file",filetypes = (("zip files","*.zip"),("gif files","*.gif"),("jpeg files","*.jpeg"),("jpg files","*.jpg"),("png files","*.png"),("txt files","*.txt"),("gif files","*.gif"),("all files","*.*")))
-            self.path = fenetre.filename
+            if isinstance(fenetre.filename, str):
+                self.path = fenetre.filename
+
 
 
         width_fenetre=50
