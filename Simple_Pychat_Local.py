@@ -45,10 +45,10 @@ class Application:
         self.global_files_path={}
         self.global_correction_hist_mess=True  #corrige les problèmes d'ordre de l'historique des messages
         self.variable_global_hist_mess=0
-        self.continue1=False #initialisation de la première étape de la déconnection
-        self.continue2=True #initialisation de la deuxième étape de la déconnection
+        self.is_running=True #initialisation  la déconnexion
         self.path="" #chemin ver fichier à envoyer
         self.path_to_fichiers=sys.path[0]+"/reception_fichiers/"
+        self.bridge_queue=asyncio.Queue()
 
         self.global_dic_reception_files={}
         self.global_list_reception_files=[]
@@ -452,86 +452,61 @@ class Application:
 
 
     async def exit_prog(self):
+        #envoie du message de deconnexion
+        self.is_running=False
+        self.fenetre.destroy()
         data={"type":0,"port":self.port_server,"heure": datetime.utcnow().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":">>> s'est déconnecté <<<","color":"red"}
         data=json.dumps(data)
         await self.send(data, self.global_list_ports_servers)
         await asyncio.sleep(1)
+        #envois d'information pour que le système reste robuste malgré le noeud en moins
         data={"type":3,"port":self.port_server,"list_port":self.global_list_ports_servers}
         data=json.dumps(data)
         await self.send(data, self.global_list_ports_servers)
-        self.continue2=False
         await asyncio.sleep(0.5)
-        self.server.close()
+        sys.exit()
+
+
+
     def path_leaf(self,path):
         head, tail = ntpath.split(path)
         return tail or ntpath.basename(head)
 
-    async def client(self):
 
+    async def send_message(self):
+        data={"type":0,"port":self.port_server,"heure": datetime.utcnow().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":("> "+ self.string_var_entry_message),"color":""}
+        if len(self.global_hist_mess)>=self.size_max_hist_mess:
+            del self.global_hist_mess[0]
+        self.global_hist_mess.append(data)
+        self.interface_message.insert(END, (datetime.now().strftime('[%H:%M] '))+data["pseudo"]+data["message"])
+        if data["color"]!="":
+            self.interface_message.itemconfig(END, foreground=data["color"])
+        await self.send(json.dumps(data),self.global_list_ports_servers)
+
+    async def initialize_send_file():
+        name_file=self.path_leaf(self.path)
+        id_file=datetime.utcnow().strftime('%H%M%S%f')[:-3]+self.username+name_file
+        print(f"[Debug] name_file{name_file}")
+        self.global_hist_files[id_file]=True
+        self.global_files_path[id_file]=self.path
+        data={"type":4,"name_file":name_file, "id_file":id_file, "port":self.port_server}
+        self.interface_message.insert(END,(datetime.now().strftime('[%H:%M] ')+"'"+data["name_file"]+"' envoyé"))
+        self.interface_message.itemconfig(END, foreground="orange")
+        self.path=""
+        await self.send(json.dumps(data), self.global_list_ports_servers)
+
+#initialise la première connexion
+    async def initialize(self):
         print(self.global_list_ports_servers)
 
         if self.port_client !=0:
             sent=False
             data_ini=json.dumps({"type":1, "port":self.port_server})
-            while not sent and self.continue2:
+            while not sent and self.is_running:
                 sent=await self.send(data_ini, self.port_client,sent=True,first=True)
-                if self.continue1:
+                if self.is_running==False:
                     await self.exit_prog()
                 await asyncio.sleep(1)
-        i=0
-        while self.continue2:
-            await asyncio.sleep(0.1)
-            if self.if_button_clicked: #si le boutton est cliqué
-                self.if_button_clicked = False
-                data={"type":0,"port":self.port_server,"heure": datetime.utcnow().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":("> "+ self.string_var_entry_message),"color":""}
-                if len(self.global_hist_mess)>=self.size_max_hist_mess:
-                    del self.global_hist_mess[0]
-                self.global_hist_mess.append(data)
-                self.interface_message.insert(END, (datetime.now().strftime('[%H:%M] '))+data["pseudo"]+data["message"])
-                if data["color"]!="":
-                    self.interface_message.itemconfig(END, foreground=data["color"])
-                await self.send(json.dumps(data),self.global_list_ports_servers)
-
-            if False:
-                data=self.global_hist_mess[self.variable_global_hist_mess]
-                data["type"]=0
-                await self.send(json.dumps(data),self.global_list_ports_servers,sent=False, sender=data["port"])
-                self.interface_message.insert(END, (datetime.now().strftime('[%H:%M] '))+self.global_hist_mess[self.variable_global_hist_mess]["pseudo"]+self.global_hist_mess[self.variable_global_hist_mess]["message"])
-                if data["color"]!="":
-                    self.interface_message.itemconfig(END, foreground=data["color"])
-
-                print(self.global_hist_mess[self.variable_global_hist_mess]["message"])
-                if self.variable_global_hist_mess<50:
-                    print(self.variable_global_hist_mess)
-                    self.variable_global_hist_mess+=1
-                else :
-                    del self.global_hist_mess[0]
-            #envoie fichier
-            if self.path!="":
-                name_file=self.path_leaf(self.path)
-                id_file=datetime.utcnow().strftime('%H%M%S%f')[:-3]+self.username+name_file
-                print(f"[Debug] name_file{name_file}")
-                self.global_hist_files[id_file]=True
-                self.global_files_path[id_file]=self.path
-                data={"type":4,"name_file":name_file, "id_file":id_file, "port":self.port_server}
-                self.interface_message.insert(END,(datetime.now().strftime('[%H:%M] ')+"'"+data["name_file"]+"' envoyé"))
-                self.interface_message.itemconfig(END, foreground="orange")
-                self.path=""
-                await self.send(json.dumps(data), self.global_list_ports_servers)
-
-
-
-            if self.continue1:
-                await self.exit_prog()
-
-
-
-
-
-
-
-
-
 
     async def interface(self): #création de l'interface
         def display_picture(event=""):
@@ -547,16 +522,17 @@ class Application:
         print(self.global_list_ports_servers)
         def fct_button_send(event=""):
             self.string_var_entry_message=var_entry_message.get()
-            self.if_button_clicked=True
+            asyncio.create_task(self.send_message())
             var_entry_message.set("")
         def exit_fenetre():
             print("Fin du programme")
-            fenetre.destroy()
-            self.continue1=True
+            asyncio.create_task(self.exit_prog())
+
         def button_file_pessed():
-            fenetre.filename =  filedialog.askopenfilename(title = "Select file",filetypes = (("zip files","*.zip"),("gif files","*.gif"),("jpeg files","*.jpeg"),("jpg files","*.jpg"),("png files","*.png"),("txt files","*.txt"),("gif files","*.gif"),("all files","*.*")))
-            if isinstance(fenetre.filename, str):
-                self.path = fenetre.filename
+            self.fenetre.filename =  filedialog.askopenfilename(title = "Select file",filetypes = (("zip files","*.zip"),("gif files","*.gif"),("jpeg files","*.jpeg"),("jpg files","*.jpg"),("png files","*.png"),("txt files","*.txt"),("gif files","*.gif"),("all files","*.*")))
+            if isinstance(self.fenetre.filename, str) and self.fenetre.filename!="":
+                self.path = self.fenetre.filename
+                asyncio.create_task(self.initialize_send_file)
 
 
 
@@ -564,47 +540,44 @@ class Application:
         height_fenetre=25
         width_button=2
 
-        fenetre = Tk()
+        self.fenetre = Tk()
 
-        menubar = Menu(fenetre)
+        menubar = Menu(self.fenetre)
         menu1 = Menu(menubar, tearoff=0)
         menu1.add_command(label="Connections")
         menu1.add_command(label="Info")
         menu1.add_command(label="Log")
         menubar.add_cascade(label="Info", menu=menu1)
-        fenetre.config(menu=menubar)
+        self.fenetre.config(menu=menubar)
 
 
 
         var_entry_message=StringVar()
-        self.label_username = Label(fenetre, text=self.salon+" / "+self.username)
+        self.label_username = Label(self.fenetre, text=self.salon+" / "+self.username)
         self.label_username.grid(row=0)
 
-        self.interface_message = Listbox(fenetre,width=width_fenetre, height=height_fenetre,selectmode='single')
+        self.interface_message = Listbox(self.fenetre,width=width_fenetre, height=height_fenetre,selectmode='single')
         self.interface_message.bind("<Button-1>", display_picture)
         self.interface_message.bind('<FocusOut>', lambda e: self.interface_message.selection_clear(0, END))
         self.interface_message.grid(row=1)
 
 
-        entry_message = Entry(fenetre, textvariable=var_entry_message, width=int(width_fenetre-(width_button*2)-8))
+        entry_message = Entry(self.fenetre, textvariable=var_entry_message, width=int(width_fenetre-(width_button*2)-8))
         entry_message.bind("<Return>", fct_button_send)
         entry_message.grid(row=2)
 
-        button_send= Button(fenetre, text="↵",width=width_button, command=fct_button_send)
+        button_send= Button(self.fenetre, text="↵",width=width_button, command=fct_button_send)
         button_send.grid(row=2,sticky=E)
-        button_file=Button(fenetre, text="┌↑┐",width=width_button,command= button_file_pessed)
+        button_file=Button(self.fenetre, text="┌↑┐",width=width_button,command= button_file_pessed)
         button_file.grid(row=2,sticky=W)
 
-        fenetre.protocol('WM_DELETE_WINDOW', exit_fenetre)
+        self.fenetre.protocol('WM_DELETE_WINDOW', exit_fenetre)
 
-        fenetre.update()
+        self.fenetre.update()
 
-        while self.continue2:
-
-
+        while self.is_running:
+            self.fenetre.update()
             await asyncio.sleep(0.05)
-            if not self.continue1:
-                fenetre.update()
 
 
 
@@ -612,7 +585,7 @@ class Application:
         print(self.global_list_ports_servers)
         await asyncio.gather(self.run_server(),
                              self.interface(),
-                             self.client())
+                             self.initialize())
 
     def run(self):
 
