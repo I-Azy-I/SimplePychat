@@ -24,11 +24,15 @@ class Menu_tk:
                     int(tkvar_port_serveur.get())
                 except:
                     erreur=erreur+"/port serveur invalide"
+                if tkvar_ip_serveur.get().count(".")!=3:
+                    erreur=erreur+"/IP serveur pas valable"
             if self.type_menu!=1:
                 if len(tkvar_salon.get())<2:
                     erreur=erreur+"/nom salon trop court"
             if len(tkvar_mdp.get())<5:
                 erreur=erreur+"/Mdp trop court"
+            if tkvar_mon_ip.get().count(".")!=3:
+                erreur=erreur+"/Mon IP pas valable"
 
 
 
@@ -50,6 +54,12 @@ class Menu_tk:
             lab_port_serveur.grid_forget()
             input_port_serveur.grid_forget()
 
+            lab_mon_ip.grid_forget()
+            input_mon_ip.grid_forget()
+
+            lab_ip_serveur.grid_forget()
+            input_ip_serveur.grid_forget()
+
             lab_mon_port.grid_forget()
             input_mon_port.grid_forget()
 
@@ -67,6 +77,9 @@ class Menu_tk:
 
             lab_mon_port.grid_forget()
             input_mon_port.grid_forget()
+
+            lab_mon_ip.grid_forget()
+            input_mon_ip.grid_forget()
 
             lab_salon.grid_forget()
             input_salon.grid_forget()
@@ -94,7 +107,7 @@ class Menu_tk:
 
             erreur = check_config()
             if erreur == False:
-                self.config={"type":1,"pseudo":tkvar_pseudo.get(), "mon_port":int(tkvar_mon_port.get()), "salon": tkvar_salon.get(),"password": tkvar_mdp.get()}
+                self.config={"type":1,"pseudo":tkvar_pseudo.get(), "mon_port":int(tkvar_mon_port.get()), "mon_ip":tkvar_mon_ip.get(), "salon": tkvar_salon.get(),"password": tkvar_mdp.get()}
                 self.stop_menu=True
                 menu_tk.destroy()
             else:
@@ -103,7 +116,7 @@ class Menu_tk:
         def b_rejoindre_pressed():
             erreur = check_config()
             if erreur == False:
-                self.config={"type":2,"pseudo":tkvar_pseudo.get(), "mon_port":int(tkvar_mon_port.get()), "port_serveur": int(tkvar_port_serveur.get()),"password": tkvar_mdp.get()}
+                self.config={"type":2,"pseudo":tkvar_pseudo.get(), "mon_port":int(tkvar_mon_port.get()),"port_serveur": int(tkvar_port_serveur.get()),"mon_ip":tkvar_mon_ip.get(), "ip_serveur": tkvar_ip_serveur.get(),"password": tkvar_mdp.get()}
                 self.stop_menu=True
                 menu_tk.destroy()
             else:
@@ -137,15 +150,18 @@ class Menu_tk:
             lab_mon_port.grid(row=2, column=0,stick=W)
             input_mon_port.grid(row=2, column=1)
 
-            lab_salon.grid(row=3, column=0, stick=W)
-            input_salon.grid(row=3, column=1)
+            lab_mon_ip.grid(row=3, column=0,stick=W)
+            input_mon_ip.grid(row=3, column=1)
 
-            lab_mdp.grid(row=4, column=0,stick=W)
-            input_mdp.grid(row=4, column=1)
+            lab_salon.grid(row=4, column=0, stick=W)
+            input_salon.grid(row=4, column=1)
 
-            label_erreur.grid(row=5, column=1)
+            lab_mdp.grid(row=5, column=0,stick=W)
+            input_mdp.grid(row=5, column=1)
 
-            b_creer.grid(row=6, column=1)
+            label_erreur.grid(row=6, column=1)
+
+            b_creer.grid(row=7, column=1)
 
             self.type_menu=2
 
@@ -173,13 +189,20 @@ class Menu_tk:
             lab_port_serveur.grid(row=3, column=0,stick=W)
             input_port_serveur.grid(row=3, column=1)
 
+            lab_mon_ip.grid(row=4, column=0,stick=W)
+            input_mon_ip.grid(row=4, column=1)
 
-            lab_mdp.grid(row=4, column=0,stick=W)
-            input_mdp.grid(row=4, column=1)
+            lab_ip_serveur.grid(row=5, column=0,stick=W)
+            input_ip_serveur.grid(row=5, column=1)
 
-            label_erreur.grid(row=5, column=1 )
 
-            b_rejoindre.grid(row=6, column=1)
+
+            lab_mdp.grid(row=6, column=0,stick=W)
+            input_mdp.grid(row=6, column=1)
+
+            label_erreur.grid(row=7, column=1 )
+
+            b_rejoindre.grid(row=8, column=1)
 
             self.type_menu=1
 
@@ -253,6 +276,15 @@ class Menu_tk:
         lab_port_serveur= Label(menu_tk, text="Port serveur:")
         tkvar_port_serveur=StringVar()
         input_port_serveur = Entry(menu_tk, textvariable=tkvar_port_serveur, width=30)
+
+        lab_mon_ip= Label(menu_tk, text="Mon IP:")
+        tkvar_mon_ip=StringVar()
+        input_mon_ip = Entry(menu_tk, textvariable=tkvar_mon_ip, width=30)
+
+        lab_ip_serveur= Label(menu_tk, text="IP serveur:")
+        tkvar_ip_serveur=StringVar()
+        input_ip_serveur = Entry(menu_tk, textvariable=tkvar_ip_serveur, width=30)
+
 
         lab_mdp= Label( menu_tk, text="Mot de passe (5 caractères min):")
         tkvar_mdp=StringVar()
