@@ -37,7 +37,7 @@ class Application:
         self.if_address=False
         self.string_var_entry_message = "" #permet de récuperer message tkinter
         self.if_button_clicked=False   #savoir si le bouton à été cliqué
-        self.global_list_ports_servers=[] #transformer en ensemble?
+        self.global_list_servers=[] #transformer en ensemble?
         self.global_compteur={} #compte les échecs de connections
         self.global_if_mess_received=False
         self.global_hist_mess=[]
@@ -57,11 +57,11 @@ class Application:
 
 
         self.username=""
-        self.ip_client=""
         self.ip_server=""
+        self.my_ip=""
         self.salon=""
-        self.port_client=0
         self.port_server=0
+        self.my_port=0
 
 
     def configuration(self,config):
@@ -73,104 +73,107 @@ class Application:
             choix=config["choix"]
             if choix == 1:
                 self.username="Julien"
-                self.ip_client="127.0.0.1"
-                self.ip_server="127.0.0.1"
-                self.port_client=0 #ne se connecte à personne
-                self.port_server=8887
+                self.ip_server=0
+                self.my_ip="127.0.0.1"
+                self.port_server=0 #ne se connecte à personne
+                self.my_port=8887
                 self.salon="Salon"
                 password="123456789"
             elif choix==2:
                 self.username="Emile"
-                self.ip_client="127.0.0.1"
                 self.ip_server="127.0.0.1"
-                self.port_client=8887
-                self.port_server=8888
+                self.my_ip="127.0.0.1"
+                self.port_server=8887
+                self.my_port=8888
                 password="123456789"
             elif choix==3:
                 self.username="Marit"
-                self.ip_client="127.0.0.1"
                 self.ip_server="127.0.0.1"
-                self.port_client=8888
-                self.port_server=8889
+                self.my_ip="127.0.0.1"
+                self.port_server=8888
+                self.my_port=8889
                 password="123456789"
             elif choix==4:
                 self.username="Pedro"
-                self.ip_client="127.0.0.1"
                 self.ip_server="127.0.0.1"
-                self.port_client=8888
-                self.port_server=8886
+                self.my_ip="127.0.0.1"
+                self.port_server=8888
+                self.my_port=8886
                 password="123456789"
 
             elif choix==5:
                 self.username="Captaine_Macaron"
-                self.ip_client="127.0.0.1"
                 self.ip_server="127.0.0.1"
-                self.port_client=8886
-                self.port_server=8885
+                self.my_ip="127.0.0.1"
+                self.port_server=8886
+                self.my_port=8885
                 password="123456789"
             elif choix==6:
                 self.username="Polo"
-                self.ip_client="127.0.0.1"
-                self.ip_server="127.0.0.1"
-                self.port_client=8886
-                self.port_server=8884
+                self.ip_server="0"
+                self.my_ip="127.0.0.1"
+                self.port_server=8886
+                self.my_port=8884
                 password="123456789"
             elif choix==7:
                 self.username="Philippos"
-                self.ip_client="127.0.0.1"
                 self.ip_server="127.0.0.1"
-                self.port_client=8885
-                self.port_server=8882
+                self.my_ip="127.0.0.1"
+                self.port_server=8885
+                self.my_port=8882
                 password="123456789"
             elif choix==8:
                 self.username="Pépito_Magique"
-                self.ip_client="127.0.0.1"
                 self.ip_server="127.0.0.1"
-                self.port_client=8889
-                self.port_server=8883
+                self.my_ip="127.0.0.1"
+                self.port_server=8889
+                self.my_port=8883
                 password="123456789"
             else:
                 self.username="SIMPLE PYCHAT"
-                self.ip_client="127.0.0.1"
                 self.ip_server="127.0.0.1"
-                self.port_client=8888
+                self.my_ip="127.0.0.1"
                 self.port_server=8888
+                self.my_port=8888
                 password="123456789"
+        #création
         elif config["type"]==1:
             self.username=config["pseudo"]
-            self.ip_client="127.0.0.1" #prédéfini car en local
-            self.ip_server="127.0.0.1"
-            self.port_client=0
-            self.port_server=config["mon_port"]
+            self.ip_server=0
+            self.my_ip=config["mon_ip"]
+            self.port_server=0
+            self.my_port=config["mon_port"]
             self.salon=config["salon"]
             password=config["password"]
+        #rejoindre
         elif config["type"]==2:
             self.username=config["pseudo"]
-            self.ip_client="127.0.0.1" #prédéfini car en local
-            self.ip_server="127.0.0.1"
-            self.port_client=config["port_serveur"]
-            self.port_server=config["mon_port"]
+            self.ip_server=config["ip_serveur"]
+            self.my_ip=config["mon_ip"]
+            self.port_server=config["port_serveur"]
+            self.my_port=config["mon_port"]
             password=config["password"]
 
 
 
+        print(self.my_ip)
+        self.my_addr=(self.my_ip,self.my_port)
+        if self.ip_server!=0: #dans le cas ou n'est le premier
 
-
-        if self.port_client!=0: #dans le cas ou est le premier
-            self.global_list_ports_servers.append(self.port_client)
-            self.global_compteur[self.port_client]=0
-            print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
+            self.global_list_servers.append((self.ip_server, self.port_server))
+            self.global_compteur[(self.ip_server, self.port_server)]=0
+            print(f"[Debug] global_list_ports_servers: {self.global_list_servers}")
         self.key=crypto_SP.create_key(password)
 
     def add_lenght_byte(self, data):
             #ajoute au debut du str sa taille en byte
             return str(len(data)).zfill(self.size_max)+data.decode()
 
-    async def try_send(self,data, destinataire,sent=False, first=False):
+    async def try_send(self,data, destinataire ,sent=False, first=False):
         i=0
         while i<2:
             try:
-                reader, writer = await asyncio.open_connection(self.ip_client, destinataire)
+                reader, writer = await asyncio.open_connection(destinataire[0], destinataire[1])
                 writer.write(data.encode())
                 print(f"Envoi: {data}")
                 writer.close()
@@ -188,7 +191,7 @@ class Application:
                             self.global_compteur[destinataire]+=1
                         else:
                             del self.global_compteur[destinataire]
-                            self.global_list_ports_servers.remove(destinataire)
+                            self.global_list_servers.remove(destinataire)
                         print(f"[Debug] global_compteur: {self.global_compteur}")
                 if sent:
                     return False
@@ -199,7 +202,7 @@ class Application:
         print(f"[Debug] message envoyé : {data}")
         data=crypto_SP.encrypt(self.key, data)
         data=self.add_lenght_byte(data)
-        if type(destinataires)==int:
+        if isinstance(destinataires,tuple):
             print("test1")
             if not sent:
                 await self.try_send(data,destinataires)
@@ -209,7 +212,7 @@ class Application:
             if sent:
                 return False
 
-        elif type(destinataires)==list:
+        elif isinstance(destinataires,list):
             for i in destinataires:
                 if i != sender:
                     if not sent:
@@ -315,12 +318,13 @@ class Application:
             writer.close() #ferme la connexion
             print(f"Serveur: Received {data[:500]} from {addr[0]}")
             data = json.loads(data)
-
+            if "addr_server" in data:
+                data["addr_server"]=tuple(data["addr_server"])
             if data["type"]==0: #recois un message, ajoute à la listebox, si c'est un nouveau noeud il faut l'ajouter dans sa liste des noeuds connectés
-                if not data["port"] in self.global_list_ports_servers:
-                    self.global_list_ports_servers.append(data["port"])
-                    self.global_compteur[data["port"]]=0
-                    print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
+                if not data["addr_server"] in self.global_list_servers:
+                    self.global_list_servers.append(data["addr_server"])
+                    self.global_compteur[data["addr_server"]]=0
+                    print(f"[Debug] global_list_servers: {self.global_list_servers}")
 
 
                 if self.check_id(data):
@@ -330,31 +334,34 @@ class Application:
                     self.interface_message.insert(END, (datetime.now().strftime('[%H:%M] '))+data["pseudo"]+data["message"])
                     if data["color"]!="":
                         self.interface_message.itemconfig(END, foreground=data["color"])
-                    sender=data["port"]
-                    data["port"]=self.port_server
-                    await self.send(json.dumps(data),self.global_list_ports_servers,sent=False, sender=sender)
+                    sender=data["addr_server"]
+                    data["addr_server"]=self.my_addr
+                    await self.send(json.dumps(data),self.global_list_servers,sent=False, sender=sender)
 
 
-            elif data["type"]==1: #nouvelle connection -->  envoyer jusqu'a 2 noeuds, il faut encore controler que l'on envoie pas sont propre port
+            elif data["type"]==1: #nouvelle connection -->  envoyer jusqu'a 2 noeuds, il faut encore controler que l'on envoie pas sa propre addr
 
             #transfert des noeuds
-
-                if len(self.global_list_ports_servers)==0:#si aucun noeud(port/ip) a proposé
-                    str_global_list_ports_servers=""
-                elif len(self.global_list_ports_servers)==1:#si 1 noeud(port/ip) a proposé
-                    str_global_list_ports_servers=str(self.global_list_ports_servers[0])
+                global_list_servers_reduced=[]
+                if len(self.global_list_servers)==0:#si aucun noeud(port/ip) a proposé
+                    global_list_servers_reduced=[]
+                elif len(self.global_list_servers)==1:#si 1 noeud(port/ip) a proposé
+                    global_list_servers_reduced.append(self.global_list_servers[0])
                 else :  #si plus de 1 noeud(port/ip) a proposé
-                    node1,node2 =random.sample(self.global_list_ports_servers,k=2)
-                    str_global_list_ports_servers=(str(node1)+","+str(node2)) #pour ip pas besoin de str
-                if not data["port"] in self.global_list_ports_servers:
-                    self.global_list_ports_servers.append(data["port"])
-                    self.global_compteur[data["port"]]=0
-                    print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
+                    node1,node2 =random.sample(self.global_list_servers,k=2)
+                    global_list_servers_reduced.append(node1)
+                    global_list_servers_reduced.append(node2)
+
+                if not data["addr_server"] in self.global_list_servers:
+                    print(data["addr_server"])
+                    self.global_list_servers.append(data["addr_server"])
+                    self.global_compteur[data["addr_server"]]=0
+                    print(f"[Debug] global_list_servers: {self.global_list_servers}")
 
 
 
-                data_to_send=json.dumps({"type":2, "new_nodes":str_global_list_ports_servers, "salon":self.salon, "hist_mess":self.global_hist_mess}) #à trouver une meilleure appelation
-                await self.send(data_to_send,data["port"])
+                data_to_send=json.dumps({"type":2, "new_nodes":global_list_servers_reduced, "salon":self.salon, "hist_mess":self.global_hist_mess}) #à trouver une meilleure appelation
+                await self.send(data_to_send,data["addr_server"])
 
             elif data["type"]==2: #reception des information pour les nouvelles connections
                 self.salon=data["salon"]
@@ -369,9 +376,9 @@ class Application:
 
 
                 if data["new_nodes"] !="":
-                    self.global_list_ports_servers.extend([int(i) for i in data["new_nodes"].split(",")]) #le int i ne sers à rien si l'on utilise des ip
-                    print(f"[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
-                data={"type":0,"port":self.port_server,"heure": datetime.utcnow().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":">>> s'est connecté <<<","color":"green"}
+                    self.global_list_servers.extend(data["new_nodes"]) #le int i ne sers à rien si l'on utilise des ip
+                    print(f"[Debug] global_servers: {self.global_list_servers}")
+                data={"type":0,"addr_server":self.my_addr,"heure": datetime.utcnow().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":">>> s'est connecté <<<","color":"green"}
                 if len(self.global_hist_mess)>=self.size_max_hist_mess:
                     del self.global_hist_mess[0]
                 self.global_hist_mess.append(data)
@@ -380,19 +387,20 @@ class Application:
                     self.interface_message.itemconfig(END, foreground=data["color"])
                 data=json.dumps(data)
 
-                await self.send(data, self.global_list_ports_servers)
+                await self.send(data, self.global_list_servers)
 
             elif data["type"]==3: #déconexions
-                data["list_port"].remove(self.port_server)
-                for i in self.global_list_ports_servers:
-                    if i in data["list_port"]:
-                        data["list_port"].remove(i)
-                if len(data["list_port"])>0:
-                    new_port=random.randint(0,len(data["list_port"])-1)
-                    self.global_list_ports_servers.append(new_port)
-                    self.global_compteur[new_port]=0
-                self.global_list_ports_servers.remove(data["port"])
-                print(f"{self.username}[Debug] global_list_ports_servers: {self.global_list_ports_servers}")
+                data["list_addr"].remove(self.my_addr)
+                for i in self.global_list_servers:
+                    if i in data["list_addr"]:
+                        data["list_addr"].remove(i)
+                if len(data["list_addr"])>0:
+                    new_addr=data["list_addr"][random.randint(0,len(data["list_addr"])-1)]
+                    self.global_list_servers.append(new_addr)
+                    self.global_compteur[new_addr]=0
+                self.global_list_servers.remove(data["addr_server"])
+                #TODO supprimer les compteur
+                print(f"{self.username}[Debug] global_list_servers: {self.global_list_servers}")
 
 
             elif data["type"]==4:#requete d'envoie fichier
@@ -400,13 +408,13 @@ class Application:
                 if not data["id_file"] in self.global_hist_files:
                     self.global_hist_files[data["id_file"]]=True
                     #envoier que l'on a pas le fichir en question
-                    data2={"type":5, "id_file":data["id_file"], "port":self.port_server, "name_file":data["name_file"]}
-                    await self.send(json.dumps(data2),data["port"])
+                    data2={"type":5, "id_file":data["id_file"], "addr_server":self.my_addr, "name_file":data["name_file"]}
+                    await self.send(json.dumps(data2),data["addr_server"])
             elif data["type"]==5:#envoie du fichier
                 with open(self.global_files_path[data["id_file"]],mode="rb") as file:
                     file=file.read()
                 file = codecs.encode(file, "base64").decode()
-                await self.send(json.dumps({"type":6,"username":self.username,"id_file":data["id_file"],"port":self.port_server, "name_file":data["name_file"],"file":file}),data["port"])
+                await self.send(json.dumps({"type":6,"username":self.username,"id_file":data["id_file"],"addr_server":self.my_addr, "name_file":data["name_file"],"file":file}),data["addr_server"])
             elif data["type"]==6:#reception et renvoie du fichier
                 name_file=data["name_file"]
                 i=1
@@ -431,8 +439,8 @@ class Application:
                     self.interface_message.itemconfig(END, foreground="orange")
                     self.global_path_file_listbox[(self.interface_message.size()-1)]=name_file
                 self.global_files_path[data["id_file"]]=file_path
-                data2={"type":4,"name_file":data["name_file"], "id_file":data["id_file"], "port":self.port_server}
-                await self.send(json.dumps(data2), self.global_list_ports_servers,sender=data["port"])
+                data2={"type":4,"name_file":data["name_file"], "id_file":data["id_file"], "addr_server":self.my_addr}
+                await self.send(json.dumps(data2), self.global_list_servers,sender=data["addr_server"])
 
 
 
@@ -441,8 +449,8 @@ class Application:
 
     async def run_server(self):
 
-        print(self.global_list_ports_servers)
-        self.server = await asyncio.start_server(self.reception, self.ip_server, self.port_server) #sers à cette adresse
+        print(self.global_list_servers)
+        self.server = await asyncio.start_server(self.reception, self.my_ip, self.my_port) #sers à cette adresse
         addr = self.server.sockets[0].getsockname()
 
         print(f'Serveur: Serving on {addr}')
@@ -455,14 +463,14 @@ class Application:
         #envoie du message de deconnexion
         self.is_running=False
         self.fenetre.destroy()
-        data={"type":0,"port":self.port_server,"heure": datetime.utcnow().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":">>> s'est déconnecté <<<","color":"red"}
+        data={"type":0,"addr_server":self.my_addr,"heure": datetime.utcnow().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":">>> s'est déconnecté <<<","color":"red"}
         data=json.dumps(data)
-        await self.send(data, self.global_list_ports_servers)
+        await self.send(data, self.global_list_servers)
         await asyncio.sleep(1)
         #envois d'information pour que le système reste robuste malgré le noeud en moins
-        data={"type":3,"port":self.port_server,"list_port":self.global_list_ports_servers}
+        data={"type":3,"addr_server":self.my_addr,"list_addr":self.global_list_servers}
         data=json.dumps(data)
-        await self.send(data, self.global_list_ports_servers)
+        await self.send(data, self.global_list_servers)
         await asyncio.sleep(0.5)
         sys.exit()
 
@@ -474,36 +482,36 @@ class Application:
 
 
     async def send_message(self):
-        data={"type":0,"port":self.port_server,"heure": datetime.utcnow().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":("> "+ self.string_var_entry_message),"color":""}
+        data={"type":0,"addr_server":self.my_addr,"heure": datetime.utcnow().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":("> "+ self.string_var_entry_message),"color":""}
         if len(self.global_hist_mess)>=self.size_max_hist_mess:
             del self.global_hist_mess[0]
         self.global_hist_mess.append(data)
         self.interface_message.insert(END, (datetime.now().strftime('[%H:%M] '))+data["pseudo"]+data["message"])
         if data["color"]!="":
             self.interface_message.itemconfig(END, foreground=data["color"])
-        await self.send(json.dumps(data),self.global_list_ports_servers)
+        await self.send(json.dumps(data),self.global_list_servers)
 
-    async def initialize_send_file():
+    async def initialize_send_file(self):
         name_file=self.path_leaf(self.path)
         id_file=datetime.utcnow().strftime('%H%M%S%f')[:-3]+self.username+name_file
         print(f"[Debug] name_file{name_file}")
         self.global_hist_files[id_file]=True
         self.global_files_path[id_file]=self.path
-        data={"type":4,"name_file":name_file, "id_file":id_file, "port":self.port_server}
+        data={"type":4,"name_file":name_file, "id_file": id_file, "addr_server":self.my_addr}
         self.interface_message.insert(END,(datetime.now().strftime('[%H:%M] ')+"'"+data["name_file"]+"' envoyé"))
         self.interface_message.itemconfig(END, foreground="orange")
         self.path=""
-        await self.send(json.dumps(data), self.global_list_ports_servers)
+        await self.send(json.dumps(data), self.global_list_servers)
 
 #initialise la première connexion
     async def initialize(self):
-        print(self.global_list_ports_servers)
+        print(self.global_list_servers)
 
-        if self.port_client !=0:
+        if self.ip_server!=0:
             sent=False
-            data_ini=json.dumps({"type":1, "port":self.port_server})
+            data_ini=json.dumps({"type":1, "addr_server":self.my_addr})
             while not sent and self.is_running:
-                sent=await self.send(data_ini, self.port_client,sent=True,first=True)
+                sent=await self.send(data_ini, (self.ip_server, self.port_server) ,sent=True,first=True)
                 if self.is_running==False:
                     await self.exit_prog()
                 await asyncio.sleep(1)
@@ -511,7 +519,7 @@ class Application:
     async def interface(self): #création de l'interface
         def display_picture(event=""):
             line_selected=self.interface_message.curselection()
-            print(f"{self.username} [Debug] global_list_ports_servers: {self.global_list_ports_servers}")
+            print(f"{self.username} [Debug] global_list_ports_servers: {self.global_list_servers}")
             print(line_selected)
             if len(line_selected)==1:
                 line_selected=line_selected[0]
@@ -519,7 +527,7 @@ class Application:
                     print("[debug] Affichage image")
                     img = Image.open((self.path_to_fichiers+self.global_path_file_listbox[line_selected]))
                     img.show()
-        print(self.global_list_ports_servers)
+        print(self.global_list_servers)
         def fct_button_send(event=""):
             self.string_var_entry_message=var_entry_message.get()
             asyncio.create_task(self.send_message())
@@ -532,7 +540,7 @@ class Application:
             self.fenetre.filename =  filedialog.askopenfilename(title = "Select file",filetypes = (("zip files","*.zip"),("gif files","*.gif"),("jpeg files","*.jpeg"),("jpg files","*.jpg"),("png files","*.png"),("txt files","*.txt"),("gif files","*.gif"),("all files","*.*")))
             if isinstance(self.fenetre.filename, str) and self.fenetre.filename!="":
                 self.path = self.fenetre.filename
-                asyncio.create_task(self.initialize_send_file)
+                asyncio.create_task(self.initialize_send_file())
 
 
 
@@ -582,7 +590,7 @@ class Application:
 
 
     async def main(self):
-        print(self.global_list_ports_servers)
+        print(self.global_list_servers)
         await asyncio.gather(self.run_server(),
                              self.interface(),
                              self.initialize())
