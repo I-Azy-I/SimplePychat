@@ -280,7 +280,7 @@ class Application:
             return True
 
     def join_data(self,data):
-
+        data=str(data)
         if data[0]=="0":
             print("[Debug] premier bout de fichier recu")
             id_new_file=int(data[1:1+self.size_max+9])
