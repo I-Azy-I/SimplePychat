@@ -300,14 +300,14 @@ class Menu_tk:
 
 
         int_demo=IntVar()
-        choix_1=Radiobutton(menu_tk, text="Julien", variable=int_demo, value=1)
-        choix_2=Radiobutton(menu_tk, text="Emile", variable=int_demo, value=2)
-        choix_3=Radiobutton(menu_tk, text="Marit", variable=int_demo, value=3)
-        choix_4=Radiobutton(menu_tk, text="Pedro", variable=int_demo, value=4)
-        choix_5=Radiobutton(menu_tk, text="Captaine_Macaron", variable=int_demo, value=5)
-        choix_6=Radiobutton(menu_tk, text="Polo", variable=int_demo, value=6)
-        choix_7=Radiobutton(menu_tk, text="Philippos", variable=int_demo, value=7)
-        choix_8=Radiobutton(menu_tk, text="Pépito_Magique", variable=int_demo, value=8)
+        choix_1=Radiobutton(menu_tk, text="Pair 1", variable=int_demo, value=1)
+        choix_2=Radiobutton(menu_tk, text="Pair 2", variable=int_demo, value=2)
+        choix_3=Radiobutton(menu_tk, text="Pair 3", variable=int_demo, value=3)
+        choix_4=Radiobutton(menu_tk, text="Pair 4", variable=int_demo, value=4)
+        choix_5=Radiobutton(menu_tk, text="Pair 5", variable=int_demo, value=5)
+        choix_6=Radiobutton(menu_tk, text="Pair 6", variable=int_demo, value=6)
+        choix_7=Radiobutton(menu_tk, text="Pair 7", variable=int_demo, value=7)
+        choix_8=Radiobutton(menu_tk, text="Pair 8", variable=int_demo, value=8)
 
 
 

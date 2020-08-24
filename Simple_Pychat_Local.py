@@ -72,7 +72,7 @@ class Application:
         if config["type"]==0:
             choix=config["choix"]
             if choix == 1:
-                self.username="Julien"
+                self.username="Pair 1"
                 self.ip_server=0
                 self.my_ip="127.0.0.1"
                 self.port_server=0 #ne se connecte à personne
@@ -80,21 +80,21 @@ class Application:
                 self.salon="Salon"
                 password="123456789"
             elif choix==2:
-                self.username="Emile"
+                self.username="Pair 2"
                 self.ip_server="127.0.0.1"
                 self.my_ip="127.0.0.1"
                 self.port_server=8887
                 self.my_port=8888
                 password="123456789"
             elif choix==3:
-                self.username="Marit"
+                self.username="Pair 3"
                 self.ip_server="127.0.0.1"
                 self.my_ip="127.0.0.1"
                 self.port_server=8888
                 self.my_port=8889
                 password="123456789"
             elif choix==4:
-                self.username="Pedro"
+                self.username="Pair 4"
                 self.ip_server="127.0.0.1"
                 self.my_ip="127.0.0.1"
                 self.port_server=8888
@@ -102,28 +102,28 @@ class Application:
                 password="123456789"
 
             elif choix==5:
-                self.username="Captaine_Macaron"
+                self.username="Pair 5"
                 self.ip_server="127.0.0.1"
                 self.my_ip="127.0.0.1"
                 self.port_server=8886
                 self.my_port=8885
                 password="123456789"
             elif choix==6:
-                self.username="Polo"
+                self.username="Pair 6"
                 self.ip_server="0"
                 self.my_ip="127.0.0.1"
                 self.port_server=8886
                 self.my_port=8884
                 password="123456789"
             elif choix==7:
-                self.username="Philippos"
+                self.username="Pair 7"
                 self.ip_server="127.0.0.1"
                 self.my_ip="127.0.0.1"
                 self.port_server=8885
                 self.my_port=8882
                 password="123456789"
             elif choix==8:
-                self.username="Pépito_Magique"
+                self.username="Pair 8"
                 self.ip_server="127.0.0.1"
                 self.my_ip="127.0.0.1"
                 self.port_server=8889
@@ -258,6 +258,7 @@ class Application:
         print(f"[Debug] data de lenght_data : {data}")
         size = int(data.decode())
         print(f"[Debug] Taille information recu: {size}")
+
         return size
 
     def check_id(self, data):
@@ -272,6 +273,7 @@ class Application:
         data = await reader.read(self.size_max)
         size= self.lenght_data(data)
         data = await reader.read(n=size) #serveur attend messages
+        print(data)
         data=crypto_SP.decrypt(self.key, data)
         if isinstance(data, bytes):
             data=data.decode()
@@ -280,7 +282,7 @@ class Application:
             return True
 
     def join_data(self,data):
-        data=str(data)
+        print(type(data))
         if data[0]=="0":
             print("[Debug] premier bout de fichier recu")
             id_new_file=int(data[1:1+self.size_max+9])
@@ -310,6 +312,7 @@ class Application:
 
     async def reception(self, reader, writer):
         data=await self.fct_reception(reader,writer)
+        print(data)
         data =self.join_data(data)
 
         if not data==True:
@@ -433,7 +436,7 @@ class Application:
                     f.write(codecs.decode(data["file"].encode(), "base64"))
                 self.interface_message.insert(END,(datetime.now().strftime('[%H:%M] ')+"'"+data["name_file"]+"' reçu de " +data["username"]))
                 self.interface_message.itemconfig(END, foreground="orange")
-                list_accepted_picture_format=["png","jpeg","jpg","gif"]
+                list_accepted_picture_format=["png","jpeg","jpg","gif","PNG","JPEG","JPG","GIF"]
                 if data["name_file"].split(".")[-1] in list_accepted_picture_format:
                     self.interface_message.insert(END,(datetime.now().strftime(">>> Cliquez pour avoir un aperçu <<<")))
                     self.interface_message.itemconfig(END, foreground="orange")
