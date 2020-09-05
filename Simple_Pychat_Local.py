@@ -193,8 +193,8 @@ class Application:
                             del self.global_compteur[destinataire]
                             self.global_list_servers.remove(destinataire)
                         print(f"[Debug] global_compteur: {self.global_compteur}")
-                if sent:
-                    return False
+            if sent:
+                return False
 
 
     async def send_data(self, data, destinataires, sent=False, sender=0, first=False):
@@ -375,11 +375,14 @@ class Application:
                     self.interface_message.insert(END,("["+str(int(i["heure"][:2])+2)+":"+i["heure"][2:4]+"] "+i["pseudo"]+i["message"]))
                     if i["color"]!="":
                         self.interface_message.itemconfig(END, foreground=i["color"])
-                print(self.global_hist_mess)
-
-
-                if data["new_nodes"] !="":
-                    self.global_list_servers.extend(data["new_nodes"]) #le int i ne sers à rien si l'on utilise des ip
+                if len(data["new_nodes"])>0:
+                    data["new_nodes"][0]=tuple(data["new_nodes"][0])
+                    self.global_list_servers.append(data["new_nodes"][0])
+                    self.global_compteur[data["new_nodes"][0]]=0
+                    if len(data["new_nodes"])>1:
+                        data["new_nodes"][1]=tuple(data["new_nodes"][1])
+                        self.global_list_servers.append(data["new_nodes"][1])
+                        self.global_compteur[data["new_nodes"][1]]=0
                     print(f"[Debug] global_servers: {self.global_list_servers}")
                 data={"type":0,"addr_server":self.my_addr,"heure": datetime.utcnow().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":">>> s'est connecté <<<","color":"green"}
                 if len(self.global_hist_mess)>=self.size_max_hist_mess:
@@ -515,8 +518,6 @@ class Application:
             data_ini=json.dumps({"type":1, "addr_server":self.my_addr})
             while not sent and self.is_running:
                 sent=await self.send(data_ini, (self.ip_server, self.port_server) ,sent=True,first=True)
-                if self.is_running==False:
-                    await self.exit_prog()
                 await asyncio.sleep(1)
 
     async def interface(self): #création de l'interface
