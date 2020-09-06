@@ -20,6 +20,7 @@ def create_key(password): #Fonction de création d'une clé de cryptage dérivé
             )
     key=base64.urlsafe_b64encode(kdf.derive(password))
     Fernet_Key=Fernet(key)
+    print(f"Clé de cryptage: {key}")
     return Fernet_Key
 
 

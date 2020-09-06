@@ -103,6 +103,29 @@ class Menu_tk:
             choix_8.grid_forget()
             b_demo.grid_forget()
 
+        def supr_menu_propos():
+            label_a_propos1.grid_forget()
+            label_a_propos2.grid_forget()
+        def supr_menu_utilisation():
+            label_utilisation1.grid_forget()
+            label_utilisation2.grid_forget()
+            label_utilisation3.grid_forget()
+            label_utilisation4.grid_forget()
+
+        def supr_menu():
+            if self.type_menu == 0:
+                supr_menu_base()
+            elif self.type_menu == 1:
+                supr_menu_rejoindre()
+            elif self.type_menu == 2:
+                supr_menu_creer()
+            elif self.type_menu==3:
+                supr_menu_demo()
+            elif self.type_menu==4:
+                supr_menu_propos()
+            elif self.type_menu==5:
+                supr_menu_utilisation()
+
         def b_creer_pressed():
 
             erreur = check_config()
@@ -132,15 +155,7 @@ class Menu_tk:
 
 
         def menu_creer():
-            global type_menu
-            if self.type_menu == 0:
-                supr_menu_base()
-            elif self.type_menu == 2:
-                return
-            elif self.type_menu == 1:
-                supr_menu_rejoindre()
-            elif self.type_menu==3:
-                supr_menu_demo()
+            supr_menu()
 
             lab_intro_menu["text"]= "Création d'un salon"
 
@@ -166,15 +181,7 @@ class Menu_tk:
             self.type_menu=2
 
         def menu_rejoindre():
-            global type_menu
-            if self.type_menu == 0:
-                supr_menu_base()
-            elif self.type_menu == 1:
-                return
-            elif self.type_menu == 2:
-                supr_menu_creer()
-            elif self.type_menu==3:
-                supr_menu_demo()
+            supr_menu()
 
 
 
@@ -208,14 +215,7 @@ class Menu_tk:
 
 
         def menu_demo():
-            if self.type_menu == 0:
-                supr_menu_base()
-            elif self.type_menu ==3:
-                return
-            elif self.type_menu == 2:
-                supr_menu_creer()
-            elif self.type_menu == 1:
-                supr_menu_rejoindre()
+            supr_menu()
             lab_intro_menu["text"]= "Démonstration"
             choix_1.grid(row=1,column=0,sticky=W)
             choix_2.grid(row=2,column=0,sticky=W)
@@ -231,6 +231,23 @@ class Menu_tk:
             self.type_menu=3
 
 
+        def menu_propos():
+            supr_menu()
+
+            lab_intro_menu["text"]= "A propos"
+            label_a_propos1.grid()
+            label_a_propos2.grid()
+            self.type_menu=4
+        def menu_utilisations():
+            supr_menu()
+
+            lab_intro_menu["text"]= "Utilisation"
+            label_utilisation1.grid()
+            label_utilisation2.grid()
+            label_utilisation3.grid()
+            label_utilisation4.grid()
+
+            self.type_menu=5
 
 
     #type menu: 0->base, 1-> rejoindre, 2-> creer, 3-> démo
@@ -246,8 +263,8 @@ class Menu_tk:
         menubar.add_cascade(label="Option", menu=menu1)
 
         menu1 = Menu(menubar, tearoff=0)
-        menu1.add_command(label="Utilisation")
-        menu1.add_command(label="A propos")
+        menu1.add_command(label="Utilisation",command=menu_utilisations)
+        menu1.add_command(label="A propos", command=menu_propos)
         menubar.add_cascade(label="Aide", menu=menu1)
 
         menu_tk.config(menu=menubar)
@@ -261,6 +278,16 @@ class Menu_tk:
         img2=ImageTk.PhotoImage(file=sys.path[0]+"/Sp_GG.png")
         image2 = Label(menu_tk, image=img2)
         image2.grid()
+
+        #à propos
+        label_a_propos1=Label(menu_tk, text="Simple Pychat et une application de chat sous forme de salon en pair-à-pair avec cryptage des messages et bien d'autres capacités.",wrap=300)
+        label_a_propos2=Label(menu_tk, text="Ce programme à été fait par Julien Berthod et Emile Schupbach dans le cadre du travail de maturité gymnasiale du lycée collège de la planta.",wrap=300)
+        #utilisation
+        label_utilisation1=Label(menu_tk,text="Dans le menu option se situe 3 choix: Créer, Rejoindre ou Démo",wrap=300)
+        label_utilisation2=Label(menu_tk,text="Créer permet d'initaliser un salon",wrap=300)
+        label_utilisation3=Label(menu_tk,text="Rejoindre permet de rejoidre un salon existant",wrap=300)
+        label_utilisation4=Label(menu_tk,text="Démo de lancer des pairs préconfigurés sur un réseau local à la machine",wrap=300)
+
 
 
         label_erreur=Label(menu_tk, foreground="red")
@@ -300,14 +327,14 @@ class Menu_tk:
 
 
         int_demo=IntVar()
-        choix_1=Radiobutton(menu_tk, text="Julien", variable=int_demo, value=1)
-        choix_2=Radiobutton(menu_tk, text="Emile", variable=int_demo, value=2)
-        choix_3=Radiobutton(menu_tk, text="Marit", variable=int_demo, value=3)
-        choix_4=Radiobutton(menu_tk, text="Pedro", variable=int_demo, value=4)
-        choix_5=Radiobutton(menu_tk, text="Captaine_Macaron", variable=int_demo, value=5)
-        choix_6=Radiobutton(menu_tk, text="Polo", variable=int_demo, value=6)
-        choix_7=Radiobutton(menu_tk, text="Philippos", variable=int_demo, value=7)
-        choix_8=Radiobutton(menu_tk, text="Pépito_Magique", variable=int_demo, value=8)
+        choix_1=Radiobutton(menu_tk, text="Pair 1", variable=int_demo, value=1)
+        choix_2=Radiobutton(menu_tk, text="Pair 2", variable=int_demo, value=2)
+        choix_3=Radiobutton(menu_tk, text="Pair 3", variable=int_demo, value=3)
+        choix_4=Radiobutton(menu_tk, text="Pair 4", variable=int_demo, value=4)
+        choix_5=Radiobutton(menu_tk, text="Pair 5", variable=int_demo, value=5)
+        choix_6=Radiobutton(menu_tk, text="Pair 6", variable=int_demo, value=6)
+        choix_7=Radiobutton(menu_tk, text="Pair 7", variable=int_demo, value=7)
+        choix_8=Radiobutton(menu_tk, text="Pair 8", variable=int_demo, value=8)
 
 
 
