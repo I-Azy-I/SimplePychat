@@ -1,6 +1,7 @@
 from tkinter import *
+from tkinter import filedialog
 from PIL import ImageTk
-
+import os
 
 
 class Menu_tk:
@@ -9,6 +10,7 @@ class Menu_tk:
         self.config={}
         self.type_menu=0
         self.stop_menu= False
+        self.path=""
 
         def check_config():
 
@@ -33,6 +35,8 @@ class Menu_tk:
                 erreur=erreur+"/Mdp trop court"
             if tkvar_mon_ip.get().count(".")!=3:
                 erreur=erreur+"/Mon IP pas valable"
+            if not os.path.isdir(tkvar_chemin.get()):
+                erreur=erreur+"/Chemin non valide"
 
 
 
@@ -69,6 +73,9 @@ class Menu_tk:
             label_erreur.grid_forget()
             label_erreur["text"]=""
 
+            b_chemin_fichier.grid_forget()
+            input_chemin.grid_forget()
+
             b_rejoindre.grid_forget()
 
         def supr_menu_creer():
@@ -89,6 +96,9 @@ class Menu_tk:
 
             label_erreur.grid_forget()
             label_erreur["text"]=""
+
+            b_chemin_fichier.grid_forget()
+            input_chemin.grid_forget()
 
             b_creer.grid_forget()
 
@@ -130,7 +140,7 @@ class Menu_tk:
 
             erreur = check_config()
             if erreur == False:
-                self.config={"type":1,"pseudo":tkvar_pseudo.get(), "mon_port":int(tkvar_mon_port.get()), "mon_ip":tkvar_mon_ip.get(), "salon": tkvar_salon.get(),"password": tkvar_mdp.get()}
+                self.config={"type":1,"pseudo":tkvar_pseudo.get(), "mon_port":int(tkvar_mon_port.get()), "mon_ip":tkvar_mon_ip.get(), "salon": tkvar_salon.get(),"password": tkvar_mdp.get(), "path": tkvar_chemin.get()}
                 self.stop_menu=True
                 menu_tk.destroy()
             else:
@@ -139,7 +149,7 @@ class Menu_tk:
         def b_rejoindre_pressed():
             erreur = check_config()
             if erreur == False:
-                self.config={"type":2,"pseudo":tkvar_pseudo.get(), "mon_port":int(tkvar_mon_port.get()),"port_serveur": int(tkvar_port_serveur.get()),"mon_ip":tkvar_mon_ip.get(), "ip_serveur": tkvar_ip_serveur.get(),"password": tkvar_mdp.get()}
+                self.config={"type":2,"pseudo":tkvar_pseudo.get(), "mon_port":int(tkvar_mon_port.get()),"port_serveur": int(tkvar_port_serveur.get()),"mon_ip":tkvar_mon_ip.get(), "ip_serveur": tkvar_ip_serveur.get(),"password": tkvar_mdp.get(),"path": tkvar_chemin.get()}
                 self.stop_menu=True
                 menu_tk.destroy()
             else:
@@ -174,10 +184,14 @@ class Menu_tk:
             lab_mdp.grid(row=5, column=0,stick=W)
             input_mdp.grid(row=5, column=1)
 
-            label_erreur.grid(row=6, column=1)
+            b_chemin_fichier.grid(row=6, column=0, stick=W)
+            input_chemin.grid(row=6, column=1)
 
-            b_creer.grid(row=7, column=1)
+            label_erreur.grid(row=7, column=1)
 
+
+
+            b_creer.grid(row=8, column=1)
             self.type_menu=2
 
         def menu_rejoindre():
@@ -207,9 +221,14 @@ class Menu_tk:
             lab_mdp.grid(row=6, column=0,stick=W)
             input_mdp.grid(row=6, column=1)
 
-            label_erreur.grid(row=7, column=1 )
+            b_chemin_fichier.grid(row=7, column=0, stick=W)
+            input_chemin.grid(row=7, column=1)
 
-            b_rejoindre.grid(row=8, column=1)
+            label_erreur.grid(row=8, column=1 )
+
+            b_rejoindre.grid(row=9, column=1)
+
+
 
             self.type_menu=1
 
@@ -225,7 +244,10 @@ class Menu_tk:
             choix_6.grid(row=6,column=0,sticky=W)
             choix_7.grid(row=7,column=0,sticky=W)
             choix_8.grid(row=8,column=0,sticky=W)
-            b_demo.grid(row=9,column=0,sticky=W)
+
+            b_demo.grid(row=10,column=0,sticky=W)
+
+
 
 
             self.type_menu=3
@@ -248,6 +270,12 @@ class Menu_tk:
             label_utilisation4.grid()
 
             self.type_menu=5
+        def b_chemin_pressed():
+            print("test")
+            menu_tk.directory = filedialog.askdirectory()
+            if isinstance(menu_tk.directory, str) and menu_tk.directory!="":
+                 tkvar_chemin.set(menu_tk.directory)
+
 
 
     #type menu: 0->base, 1-> rejoindre, 2-> creer, 3-> démo
@@ -281,7 +309,7 @@ class Menu_tk:
 
         #à propos
         label_a_propos1=Label(menu_tk, text="Simple Pychat et une application de chat sous forme de salon en pair-à-pair avec cryptage des messages et bien d'autres capacités.",wrap=300)
-        label_a_propos2=Label(menu_tk, text="Ce programme à été fait par Julien Berthod et Emile Schupbach dans le cadre du travail de maturité gymnasiale du lycée collège de la planta.",wrap=300)
+        label_a_propos2=Label(menu_tk, text="Ce programme a été fait par Julien Berthod et Emile Schupbach dans le cadre du travail de maturité gymnasiale du lycée collège de la planta.",wrap=300)
         #utilisation
         label_utilisation1=Label(menu_tk,text="Dans le menu option se situe 3 choix: Créer, Rejoindre ou Démo",wrap=300)
         label_utilisation2=Label(menu_tk,text="Créer permet d'initaliser un salon",wrap=300)
@@ -324,6 +352,11 @@ class Menu_tk:
         b_rejoindre=Button(menu_tk, text="REJOINDRE", command=b_rejoindre_pressed)
         b_creer=Button(menu_tk, text="CREER", command=b_creer_pressed)
         b_demo=Button(menu_tk, text="LANCER", command=b_demo_pressed)
+
+        b_chemin_fichier=Button(menu_tk, text="Fichier de téléchargement ┌↓┐", command=b_chemin_pressed)
+        tkvar_chemin=StringVar()
+        input_chemin = Entry(menu_tk ,textvariable=tkvar_chemin, width=30)
+
 
 
         int_demo=IntVar()

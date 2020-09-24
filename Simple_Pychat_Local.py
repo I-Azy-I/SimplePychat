@@ -70,6 +70,7 @@ class Application:
         # 0 démo, 1 créer, 2 rejoindre
         #config-> 0 type, choix; 1 type, pseudo, mon_port, salon, password ;2 type pseudo, mon_port, port_serveur, password
         if config["type"]==0:
+            self.path_to_fichiers=sys.path[0]+"/reception_fichiers/"
             choix=config["choix"]
             if choix == 1:
                 self.username="Pair 1"
@@ -136,6 +137,7 @@ class Application:
                 self.port_server=8888
                 self.my_port=8888
                 password="123456789"
+
         #création
         elif config["type"]==1:
             self.username=config["pseudo"]
@@ -144,6 +146,7 @@ class Application:
             self.port_server=0
             self.my_port=config["mon_port"]
             self.salon=config["salon"]
+            self.path_to_fichiers=config["path"]+"/"
             password=config["password"]
         #rejoindre
         elif config["type"]==2:
@@ -152,6 +155,7 @@ class Application:
             self.my_ip=config["mon_ip"]
             self.port_server=config["port_serveur"]
             self.my_port=config["mon_port"]
+            self.path_to_fichiers=config["path"]+"/"
             password=config["password"]
 
 
