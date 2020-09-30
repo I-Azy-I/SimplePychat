@@ -179,7 +179,7 @@ class Application:
             try:
                 reader, writer = await asyncio.open_connection(destinataire[0], destinataire[1])
                 writer.write(data.encode())
-                print(f"Envoi: {data}")
+
                 writer.close()
                 if sent:
                     return True
@@ -203,11 +203,9 @@ class Application:
 
     async def send_data(self, data, destinataires, sent=False, sender=0, first=False):
         print(f"[Debug] taille string : {len(data)}")
-        print(f"[Debug] message envoyé : {data}")
         data=crypto_SP.encrypt(self.key, data)
         data=self.add_lenght_byte(data)
         if isinstance(destinataires,tuple):
-            print("test1")
             if not sent:
                 await self.try_send(data,destinataires)
             else:
@@ -233,18 +231,25 @@ class Application:
         #pépare si il y a trop a envoyer
         if len(data)>self.lenght_str_max:
             #premiere partie envoyé avec le longueur du message totale
-            id_file=str(len(data[:self.size_max])).zfill(self.size_max)+datetime.utcnow().strftime('%H%M%S%f')[:-3]
-            first_data="0"+id_file+data[:self.lenght_str_max]
-            await self.send_data(first_data,destinataires,sender=sender)
+            #num_pos=round(len(data)/self.lenght_str_max)+2
+            id_file=str(len(data[:self.size_max])).zfill(self.size_max)+datetime.utcnow().strftime('%H%M%S%f')[:-3] #id:
+            first_data= {"part":"0","id": id_file, "file": data[:self.lenght_str_max],"position":0 }
+            await self.send_data(json.dumps(first_data),destinataires,sender=sender)
+            print("envoie premier bout de fichier")
             data=data[self.lenght_str_max:]
-            print("len data")
-            print(len(data))
-            for i in range(round(len(data)/self.lenght_str_max)):
-                data_splited="1"+id_file+data[:self.lenght_str_max]
-                await self.send_data(data_splited,destinataires,sender=sender)
+            total_pos=round(len(data)/self.lenght_str_max)
+            for i in range(total_pos):
+                print(f"Envoie bout de fichier {i+1}")
+                data_splited={"part":"1","position":(i+1), "id":id_file,"file":data[:self.lenght_str_max]}
+                print(data_splited["file"][-20:])
+                await self.send_data(json.dumps(data_splited),destinataires,sender=sender)
                 data=data[self.lenght_str_max:]
-            data_splited="2"+id_file+data
-            await self.send_data(data_splited,destinataires,sender=sender)
+                if i== total_pos-1:
+                    print(f"Envoie dernier bout de fichier {i+2}")
+                    data_splited={"part":"2","id":id_file,"file":data, "position":(i+2)}
+                    await self.send_data(json.dumps(data_splited),destinataires,sender=sender)
+
+
             #envoie le message final
         else:
 
@@ -277,7 +282,6 @@ class Application:
         data = await reader.read(self.size_max)
         size= self.lenght_data(data)
         data = await reader.read(n=size) #serveur attend messages
-        print(data)
         data=crypto_SP.decrypt(self.key, data)
         if isinstance(data, bytes):
             data=data.decode()
@@ -286,46 +290,83 @@ class Application:
             return True
 
     def join_data(self,data):
-        print(type(data))
-        if data[0]=="0":
-            print("[Debug] premier bout de fichier recu")
-            id_new_file=int(data[1:1+self.size_max+9])
-            print(f"[Debug] id_new_file {id_new_file}")
-            self.global_dic_reception_files[id_new_file]=len(self.global_list_reception_files)
-            self.global_list_reception_files.append([data[self.size_max+10:]])
+        if "part" in data:
+            #les bouts de fichiers recu sont ajoutés à une liste sous le format (postion,data) {id:[liste[(pos,data)],taille]}
+            id = data["id"]
+            position=data["position"]
+            if id not in self.global_dic_reception_files:
+                self.global_dic_reception_files[id]=[[],""] #deucième partie du tuple
+
+            self.global_dic_reception_files[id][0].append((position,data["file"]))
+            print(f"Bout fichier {position} de {id} recu")
+            if data["part"]=="2":
+                self.global_dic_reception_files[id][1]=position
+            if self.global_dic_reception_files[id][1] !="":
+                print(f"1: {len(self.global_dic_reception_files[id][0])}")
+                print(f"2: {self.global_dic_reception_files[id][1]+1}")
+                if len(self.global_dic_reception_files[id][0])==self.global_dic_reception_files[id][1]+1:
+                    print("fusion des fichiers")
+                    reception_file_ordered=[""]*(self.global_dic_reception_files[id][1]+1)
+                    print("verification ordre parties de fichiers")
+                    for i in range(len(self.global_dic_reception_files[id][0])-1,-1,-1):
+                        print(f"Ajout en {self.global_dic_reception_files[id][0][i][0]}")
+                        reception_file_ordered[self.global_dic_reception_files[id][0][i][0]]=self.global_dic_reception_files[id][0][i][1]
+                        self.global_dic_reception_files[id][0].pop(i)
+                    del self.global_dic_reception_files[id]
+                    print("creation fichier")
+                    data=""
+                    reception_file_ordered.reverse()
+                    for i in range(len(reception_file_ordered)-1,-1,-1):
+                        data=data+reception_file_ordered[i]
+                        reception_file_ordered.pop(i)
+                    del reception_file_ordered
+                    print(f"fusion terminée")
+                    print(data)
+                    data=json.loads(data)
+                    return data
             return True
-        elif data[0]=="1":
-            print("[Debug] Suite de fichier recu")
-            lenght_str=int(data[1:self.size_max+1])#len_str est la longueur du fichier au total
-            id_file=int(data[1:(1+self.size_max+9)])
-            self.global_list_reception_files[self.global_dic_reception_files[id_file]].append(data[self.size_max+10:])# 1 + size max + 9 de l'identifiant
-            return True
-        elif data[0]=="2":
-            lenght_str=int(data[1:self.size_max+1])#len_str est la longueur du fichier au total
-            id_file=int(data[1:(1+self.size_max+9)])
-            self.global_list_reception_files[self.global_dic_reception_files[id_file]].append(data[self.size_max+10:])# 1 + size max + 9 de l'identifiant
-            print("Fusion fichier")
-            data=""
-            for i in self.global_list_reception_files[self.global_dic_reception_files[id_file]]:
-                data=data+i
-            del self.global_list_reception_files[self.global_dic_reception_files[id_file]]
-            del self.global_dic_reception_files[id_file]
-            return data
+
+
+            """
+            if data[part]=="0":
+                print("[Debug] premier bout de fichier recu")
+                id_new_file=data[id]
+                print(f"[Debug] id_new_file {id_new_file}")
+                self.global_dic_reception_files[id_new_file]=data[data]
+                self.global_list_reception_files.append([data[self.size_max+10:]])
+                return True
+            elif data[0]=="1":
+                print("[Debug] Suite de fichier recu")
+                lenght_str=int(data[1:self.size_max+1])#len_str est la longueur du fichier au total
+                id_file=int(data[1:(1+self.size_max+9)])
+                self.global_list_reception_files[self.global_dic_reception_files[id_file]].append(data[self.size_max+10:])# 1 + size max + 9 de l'identifiant
+                return True
+            elif data[0]=="2":
+                lenght_str=int(data[1:self.size_max+1])#len_str est la longueur du fichier au total
+                id_file=int(data[1:(1+self.size_max+9)])
+                self.global_list_reception_files[self.global_dic_reception_files[id_file]].append(data[self.size_max+10:])# 1 + size max + 9 de l'identifiant
+                print("Fusion fichier")
+                data=""
+                for i in self.global_list_reception_files[self.global_dic_reception_files[id_file]]:
+                    data=data+i
+                del self.global_list_reception_files[self.global_dic_reception_files[id_file]]
+                del self.global_dic_reception_files[id_file]
+                return data
+            """
         else:
             return data
 
     async def reception(self, reader, writer):
-        data=await self.fct_reception(reader,writer)
-        print(data)
+        data = await self.fct_reception(reader,writer)
+        data = json.loads(data)
         data =self.join_data(data)
 
         if not data==True:
 
             addr = writer.get_extra_info('peername') #inutile
             writer.close() #ferme la connexion
-            print(f"Serveur: Received {data[:500]} from {addr[0]}")
-            data = json.loads(data)
             if "addr_server" in data:
+
                 data["addr_server"]=tuple(data["addr_server"])
             if data["type"]==0: #recois un message, ajoute à la listebox, si c'est un nouveau noeud il faut l'ajouter dans sa liste des noeuds connectés
                 if not data["addr_server"] in self.global_list_servers:
