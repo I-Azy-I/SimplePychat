@@ -244,10 +244,10 @@ class Application:
                 print(data_splited["file"][-20:])
                 await self.send_data(json.dumps(data_splited),destinataires,sender=sender)
                 data=data[self.lenght_str_max:]
-                if i== total_pos-1:
-                    print(f"Envoie dernier bout de fichier {i+2}")
-                    data_splited={"part":"2","id":id_file,"file":data, "position":(i+2)}
-                    await self.send_data(json.dumps(data_splited),destinataires,sender=sender)
+
+            print(f"Envoie dernier bout de fichier {i+2}")
+            data_splited={"part":"2","id":id_file,"file":data, "position":(total_pos+1)}
+            await self.send_data(json.dumps(data_splited),destinataires,sender=sender)
 
 
             #envoie le message final
@@ -450,7 +450,8 @@ class Application:
                     self.global_list_servers.append(new_addr)
                     self.global_compteur[new_addr]=0
                 self.global_list_servers.remove(data["addr_server"])
-                #TODO supprimer les compteur
+                del self.global_compteur[data["addr_server"]]
+
                 print(f"{self.username}[Debug] global_list_servers: {self.global_list_servers}")
 
 
