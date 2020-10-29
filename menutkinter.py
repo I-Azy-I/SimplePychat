@@ -308,8 +308,8 @@ class Menu_tk:
         image2.grid()
 
         #à propos
-        label_a_propos1=Label(menu_tk, text="Simple Pychat et une application de chat sous forme de salon en pair-à-pair avec cryptage des messages et bien d'autres capacités.",wrap=300)
-        label_a_propos2=Label(menu_tk, text="Ce programme a été fait par Julien Berthod et Emile Schupbach dans le cadre du travail de maturité gymnasiale du lycée collège de la planta.",wrap=300)
+        label_a_propos1=Label(menu_tk, text="Simple Pychat et une application de chat sous forme de salon en pair-à-pair avec cryptage des messages et bien d'autres fonctionnalités.",wrap=300)
+        label_a_propos2=Label(menu_tk, text="Ce programme a été fait par Julien Berthod et Emile Schupbach.",wrap=300)
         #utilisation
         label_utilisation1=Label(menu_tk,text="Dans le menu option se situe 3 choix: Créer, Rejoindre ou Démo",wrap=300)
         label_utilisation2=Label(menu_tk,text="Créer permet d'initaliser un salon",wrap=300)

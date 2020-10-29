@@ -111,7 +111,7 @@ class Application:
                 password="123456789"
             elif choix==6:
                 self.username="Pair 6"
-                self.ip_server="0"
+                self.ip_server="127.0.0.1"
                 self.my_ip="127.0.0.1"
                 self.port_server=8886
                 self.my_port=8884
@@ -158,15 +158,12 @@ class Application:
             self.path_to_fichiers=config["path"]+"/"
             password=config["password"]
 
-
-
-        print(self.my_ip)
         self.my_addr=(self.my_ip,self.my_port)
         if self.ip_server!=0: #dans le cas ou n'est le premier
 
             self.global_list_servers.append((self.ip_server, self.port_server))
             self.global_compteur[(self.ip_server, self.port_server)]=0
-            print(f"[Debug] global_list_ports_servers: {self.global_list_servers}")
+            #print(f"[Debug] global_list_ports_servers: {self.global_list_servers}")
         self.key=crypto_SP.create_key(password)
 
     def add_lenght_byte(self, data):
@@ -185,7 +182,7 @@ class Application:
                     return True
                 break
             except ConnectionRefusedError:
-                print(f"Connection impossible à {destinataire}")
+                #print(f"Connection impossible à {destinataire}")
                 if first:
                     break
                 i+=1
@@ -196,13 +193,13 @@ class Application:
                         else:
                             del self.global_compteur[destinataire]
                             self.global_list_servers.remove(destinataire)
-                        print(f"[Debug] global_compteur: {self.global_compteur}")
+                        #print(f"[Debug] global_compteur: {self.global_compteur}")
             if sent:
                 return False
 
 
     async def send_data(self, data, destinataires, sent=False, sender=0, first=False):
-        print(f"[Debug] taille string : {len(data)}")
+        #print(f"[Debug] taille string : {len(data)}")
         data=crypto_SP.encrypt(self.key, data)
         data=self.add_lenght_byte(data)
         if isinstance(destinataires,tuple):
@@ -235,17 +232,17 @@ class Application:
             id_file=str(len(data[:self.size_max])).zfill(self.size_max)+datetime.utcnow().strftime('%H%M%S%f')[:-3] #id:
             first_data= {"part":"0","id": id_file, "file": data[:self.lenght_str_max],"position":0 }
             await self.send_data(json.dumps(first_data),destinataires,sender=sender)
-            print("envoie premier bout de fichier")
+            #print("envoie premier bout de fichier")
             data=data[self.lenght_str_max:]
             total_pos=round(len(data)/self.lenght_str_max)
             for i in range(total_pos):
-                print(f"Envoie bout de fichier {i+1}")
+                #print(f"Envoie bout de fichier {i+1}")
                 data_splited={"part":"1","position":(i+1), "id":id_file,"file":data[:self.lenght_str_max]}
-                print(data_splited["file"][-20:])
+                #print(data_splited["file"][-20:])
                 await self.send_data(json.dumps(data_splited),destinataires,sender=sender)
                 data=data[self.lenght_str_max:]
 
-            print(f"Envoie dernier bout de fichier {i+2}")
+            #print(f"Envoie dernier bout de fichier {i+2}")
             data_splited={"part":"2","id":id_file,"file":data, "position":(total_pos+1)}
             await self.send_data(json.dumps(data_splited),destinataires,sender=sender)
 
@@ -256,7 +253,7 @@ class Application:
             if not sent:
                 await self.send_data( data, destinataires, sent=sent, sender=sender, first=first)
             else:
-                print(sent)
+                #print(sent)
                 if await self.send_data( data, destinataires, sent=True, sender=sender, first=first):
                     return True
                 else:
@@ -264,9 +261,9 @@ class Application:
 
     def lenght_data(self,data):
         #return nombre de bytes de l'information reçue
-        print(f"[Debug] data de lenght_data : {data}")
+        #print(f"[Debug] data de lenght_data : {data}")
         size = int(data.decode())
-        print(f"[Debug] Taille information recu: {size}")
+        #print(f"[Debug] Taille information recu: {size}")
 
         return size
 
@@ -284,9 +281,11 @@ class Application:
         data = await reader.read(n=size) #serveur attend messages
         data=crypto_SP.decrypt(self.key, data)
         if isinstance(data, bytes):
+            #print("test 1")
             data=data.decode()
             return data
         else:
+            #print("test 2")
             return True
 
     def join_data(self,data):
@@ -298,30 +297,30 @@ class Application:
                 self.global_dic_reception_files[id]=[[],""] #deucième partie du tuple
 
             self.global_dic_reception_files[id][0].append((position,data["file"]))
-            print(f"Bout fichier {position} de {id} recu")
+            #print(f"Bout fichier {position} de {id} recu")
             if data["part"]=="2":
                 self.global_dic_reception_files[id][1]=position
             if self.global_dic_reception_files[id][1] !="":
-                print(f"1: {len(self.global_dic_reception_files[id][0])}")
-                print(f"2: {self.global_dic_reception_files[id][1]+1}")
+                #print(f"1: {len(self.global_dic_reception_files[id][0])}")
+                #print(f"2: {self.global_dic_reception_files[id][1]+1}")
                 if len(self.global_dic_reception_files[id][0])==self.global_dic_reception_files[id][1]+1:
-                    print("fusion des fichiers")
+                    #print("fusion des fichiers")
                     reception_file_ordered=[""]*(self.global_dic_reception_files[id][1]+1)
-                    print("verification ordre parties de fichiers")
+                    #print("verification ordre parties de fichiers")
                     for i in range(len(self.global_dic_reception_files[id][0])-1,-1,-1):
-                        print(f"Ajout en {self.global_dic_reception_files[id][0][i][0]}")
+                        #print(f"Ajout en {self.global_dic_reception_files[id][0][i][0]}")
                         reception_file_ordered[self.global_dic_reception_files[id][0][i][0]]=self.global_dic_reception_files[id][0][i][1]
                         self.global_dic_reception_files[id][0].pop(i)
                     del self.global_dic_reception_files[id]
-                    print("creation fichier")
+                    #print("creation fichier")
                     data=""
                     reception_file_ordered.reverse()
                     for i in range(len(reception_file_ordered)-1,-1,-1):
                         data=data+reception_file_ordered[i]
                         reception_file_ordered.pop(i)
                     del reception_file_ordered
-                    print(f"fusion terminée")
-                    print(data)
+                    #print(f"fusion terminée")
+                    #print(data)
                     data=json.loads(data)
                     return data
             return True
@@ -362,8 +361,6 @@ class Application:
         data =self.join_data(data)
 
         if not data==True:
-
-            addr = writer.get_extra_info('peername') #inutile
             writer.close() #ferme la connexion
             if "addr_server" in data:
 
@@ -372,7 +369,7 @@ class Application:
                 if not data["addr_server"] in self.global_list_servers:
                     self.global_list_servers.append(data["addr_server"])
                     self.global_compteur[data["addr_server"]]=0
-                    print(f"[Debug] global_list_servers: {self.global_list_servers}")
+                    #print(f"[Debug] global_list_servers: {self.global_list_servers}")
 
 
                 if self.check_id(data):
@@ -401,10 +398,10 @@ class Application:
                     global_list_servers_reduced.append(node2)
 
                 if not data["addr_server"] in self.global_list_servers:
-                    print(data["addr_server"])
+                    #print(data["addr_server"])
                     self.global_list_servers.append(data["addr_server"])
                     self.global_compteur[data["addr_server"]]=0
-                    print(f"[Debug] global_list_servers: {self.global_list_servers}")
+                    #print(f"[Debug] global_list_servers: {self.global_list_servers}")
 
 
 
@@ -428,7 +425,7 @@ class Application:
                         data["new_nodes"][1]=tuple(data["new_nodes"][1])
                         self.global_list_servers.append(data["new_nodes"][1])
                         self.global_compteur[data["new_nodes"][1]]=0
-                    print(f"[Debug] global_servers: {self.global_list_servers}")
+                    #print(f"[Debug] global_servers: {self.global_list_servers}")
                 data={"type":0,"addr_server":self.my_addr,"heure": datetime.utcnow().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":">>> s'est connecté <<<","color":"green"}
                 if len(self.global_hist_mess)>=self.size_max_hist_mess:
                     del self.global_hist_mess[0]
@@ -452,7 +449,7 @@ class Application:
                 self.global_list_servers.remove(data["addr_server"])
                 del self.global_compteur[data["addr_server"]]
 
-                print(f"{self.username}[Debug] global_list_servers: {self.global_list_servers}")
+                #print(f"{self.username}[Debug] global_list_servers: {self.global_list_servers}")
 
 
             elif data["type"]==4:#requete d'envoie fichier
@@ -501,11 +498,11 @@ class Application:
 
     async def run_server(self):
 
-        print(self.global_list_servers)
+        #print(self.global_list_servers)
         self.server = await asyncio.start_server(self.reception, self.my_ip, self.my_port) #sers à cette adresse
         addr = self.server.sockets[0].getsockname()
 
-        print(f'Serveur: Serving on {addr}')
+        #print(f'Serveur: Serving on {addr}')
 
         async with self.server:
             await self.server.serve_forever()
@@ -546,7 +543,7 @@ class Application:
     async def initialize_send_file(self):
         name_file=self.path_leaf(self.path)
         id_file=datetime.utcnow().strftime('%H%M%S%f')[:-3]+self.username+name_file
-        print(f"[Debug] name_file{name_file}")
+        #print(f"[Debug] name_file{name_file}")
         self.global_hist_files[id_file]=True
         self.global_files_path[id_file]=self.path
         data={"type":4,"name_file":name_file, "id_file": id_file, "addr_server":self.my_addr}
@@ -557,7 +554,7 @@ class Application:
 
 #initialise la première connexion
     async def initialize(self):
-        print(self.global_list_servers)
+        #print(self.global_list_servers)
 
         if self.ip_server!=0:
             sent=False
@@ -569,21 +566,21 @@ class Application:
     async def interface(self): #création de l'interface
         def display_picture(event=""):
             line_selected=self.interface_message.curselection()
-            print(f"{self.username} [Debug] global_list_ports_servers: {self.global_list_servers}")
-            print(line_selected)
+            #print(f"{self.username} [Debug] global_list_ports_servers: {self.global_list_servers}")
+            #print(line_selected)
             if len(line_selected)==1:
                 line_selected=line_selected[0]
                 if line_selected in self.global_path_file_listbox:
-                    print("[debug] Affichage image")
+                    #print("[debug] Affichage image")
                     img = Image.open((self.path_to_fichiers+self.global_path_file_listbox[line_selected]))
                     img.show()
-        print(self.global_list_servers)
+        #print(self.global_list_servers)
         def fct_button_send(event=""):
             self.string_var_entry_message=var_entry_message.get()
             asyncio.create_task(self.send_message())
             var_entry_message.set("")
         def exit_fenetre():
-            print("Fin du programme")
+            #print("Fin du programme")
             asyncio.create_task(self.exit_prog())
 
         def button_file_pessed():
@@ -600,13 +597,6 @@ class Application:
 
         self.fenetre = Tk()
 
-        menubar = Menu(self.fenetre)
-        menu1 = Menu(menubar, tearoff=0)
-        menu1.add_command(label="Connections")
-        menu1.add_command(label="Info")
-        menu1.add_command(label="Log")
-        menubar.add_cascade(label="Info", menu=menu1)
-        self.fenetre.config(menu=menubar)
 
 
 
@@ -640,7 +630,7 @@ class Application:
 
 
     async def main(self):
-        print(self.global_list_servers)
+        #print(self.global_list_servers)
         await asyncio.gather(self.run_server(),
                              self.interface(),
                              self.initialize())
