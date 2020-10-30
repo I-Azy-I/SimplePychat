@@ -2,7 +2,7 @@ from tkinter import *
 from tkinter import filedialog
 from PIL import ImageTk
 import os
-
+import socket
 
 class Menu_tk:
     def start(self):
@@ -327,14 +327,17 @@ class Menu_tk:
         lab_mon_port= Label(menu_tk, text="Mon port:")
         tkvar_mon_port=StringVar()
         input_mon_port = Entry(menu_tk, textvariable=tkvar_mon_port, width=30)
+        tkvar_mon_port.set("8888")
 
         lab_port_serveur= Label(menu_tk, text="Port serveur:")
         tkvar_port_serveur=StringVar()
         input_port_serveur = Entry(menu_tk, textvariable=tkvar_port_serveur, width=30)
 
+
         lab_mon_ip= Label(menu_tk, text="Mon IP:")
         tkvar_mon_ip=StringVar()
         input_mon_ip = Entry(menu_tk, textvariable=tkvar_mon_ip, width=30)
+        tkvar_mon_ip.set(socket.gethostbyname(socket.gethostname()))
 
         lab_ip_serveur= Label(menu_tk, text="IP serveur:")
         tkvar_ip_serveur=StringVar()
