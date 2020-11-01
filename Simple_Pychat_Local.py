@@ -228,6 +228,7 @@ class Application:
     async def send(self, data, destinataires, sent=False, sender=0, first=False):
         #pépare si il y a trop a envoyer
         if len(data)>self.lenght_str_max:
+            print("Envoi message en plusieurs parties")
             #premiere partie envoyé avec le longueur du message totale
             #num_pos=round(len(data)/self.lenght_str_max)+2
             id_file=str(len(data[:self.size_max])).zfill(self.size_max)+datetime.utcnow().strftime('%H%M%S%f')[:-3] #id:
@@ -250,7 +251,7 @@ class Application:
 
             #envoie le message final
         else:
-
+            print(f"Envoi message")
             if not sent:
                 await self.send_data( data, destinataires, sent=sent, sender=sender, first=first)
             else:
@@ -369,7 +370,6 @@ class Application:
             if "addr_server" in data:
 
                 data["addr_server"]=tuple(data["addr_server"])
-            print(data)
             if data["type"]==0: #recois un message, ajoute à la listebox, si c'est un nouveau noeud il faut l'ajouter dans sa liste des noeuds connectés
                 print("Reception: type 0")
                 if not data["addr_server"] in self.global_list_servers:
@@ -522,17 +522,24 @@ class Application:
 
 
     async def exit_prog(self):
+        print("Fermeture du programme en cours...")
         #envoie du message de deconnexion
         self.is_running=False
         self.fenetre.destroy()
         data={"type":0,"addr_server":self.my_addr,"heure": datetime.utcnow().strftime('%H%M%S%f')[:-3] , "pseudo": self.username, "message":">>> s'est déconnecté <<<","color":"red"}
         data=json.dumps(data)
-        await self.send(data, self.global_list_servers)
+        try:
+            await self.send(data, self.global_list_servers)
+        except OSError:
+            print("[WinError 121] Le délai de temporisation de sémaphore a expiré")
         await asyncio.sleep(1)
         #envois d'information pour que le système reste robuste malgré le noeud en moins
         data={"type":3,"addr_server":self.my_addr,"list_addr":self.global_list_servers}
         data=json.dumps(data)
-        await self.send(data, self.global_list_servers)
+        try:
+            await self.send(data, self.global_list_servers)
+        except OSError:
+            print("[WinError 121] Le délai de temporisation de sémaphore a expiré")
         await asyncio.sleep(0.5)
         sys.exit()
 
@@ -573,7 +580,11 @@ class Application:
             sent=False
             data_ini=json.dumps({"type":1, "addr_server":self.my_addr})
             while not sent and self.is_running:
-                sent=await self.send(data_ini, (self.ip_server, self.port_server) ,sent=True,first=True)
+                try:
+                    sent=await self.send(data_ini, (self.ip_server, self.port_server) ,sent=True,first=True)
+                except OSError:
+                    print("[WinError 121] Le délai de temporisation de sémaphore a expiré")
+                print("Tentative de connexion échouée ")
                 await asyncio.sleep(1)
 
     async def interface(self): #création de l'interface
