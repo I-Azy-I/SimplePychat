@@ -446,6 +446,9 @@ class Application:
 
             elif data["type"]==3: #déconexions
                 print("Reception: type 3")
+                #permet de changer en tuple les adresse vu que json les met sous forme de liste
+                for i in range(len(data["list_addr"])):
+                    data["list_addr"][i]=tuple(data["list_addr"][i])
                 data["list_addr"].remove(self.my_addr)
                 for i in self.global_list_servers:
                     if i in data["list_addr"]:

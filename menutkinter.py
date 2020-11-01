@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import filedialog
 from PIL import ImageTk
 import os
+import sys
 import socket
 
 class Menu_tk:
