@@ -33,7 +33,7 @@ class Application:
         #variable
         self.size_max_hist_mess=50
         self.lenght_str_max=1000 #longueur max des string pour l'encryptage
-        self.size_max=6 #4:max9999 str
+        self.size_max=4 #4:max9999 str
         self.if_address=False
         self.string_var_entry_message = "" #permet de récuperer message tkinter
         self.if_button_clicked=False   #savoir si le bouton à été cliqué
@@ -70,6 +70,7 @@ class Application:
         # 0 démo, 1 créer, 2 rejoindre
         #config-> 0 type, choix; 1 type, pseudo, mon_port, salon, password ;2 type pseudo, mon_port, port_serveur, password
         if config["type"]==0:
+
             self.path_to_fichiers=sys.path[0]+"/reception_fichiers/"
             choix=config["choix"]
             if choix == 1:
@@ -291,14 +292,17 @@ class Application:
     def join_data(self,data):
         if "part" in data:
             #les bouts de fichiers recu sont ajoutés à une liste sous le format (postion,data) {id:[liste[(pos,data)],taille]}
+
             id = data["id"]
             position=data["position"]
+            print(f" Reception: partie {position}")
             if id not in self.global_dic_reception_files:
                 self.global_dic_reception_files[id]=[[],""] #deucième partie du tuple
 
             self.global_dic_reception_files[id][0].append((position,data["file"]))
             #print(f"Bout fichier {position} de {id} recu")
             if data["part"]=="2":
+                print(f" Nombre totale de parties: {position}")
                 self.global_dic_reception_files[id][1]=position
             if self.global_dic_reception_files[id][1] !="":
                 #print(f"1: {len(self.global_dic_reception_files[id][0])}")
@@ -306,20 +310,20 @@ class Application:
                 if len(self.global_dic_reception_files[id][0])==self.global_dic_reception_files[id][1]+1:
                     #print("fusion des fichiers")
                     reception_file_ordered=[""]*(self.global_dic_reception_files[id][1]+1)
-                    #print("verification ordre parties de fichiers")
+                    print(" vérification ordre parties de fichiers")
                     for i in range(len(self.global_dic_reception_files[id][0])-1,-1,-1):
-                        #print(f"Ajout en {self.global_dic_reception_files[id][0][i][0]}")
+                        print(f"Ajout en {self.global_dic_reception_files[id][0][i][0]}")
                         reception_file_ordered[self.global_dic_reception_files[id][0][i][0]]=self.global_dic_reception_files[id][0][i][1]
                         self.global_dic_reception_files[id][0].pop(i)
                     del self.global_dic_reception_files[id]
-                    #print("creation fichier")
+                    print(" création fichier")
                     data=""
                     reception_file_ordered.reverse()
                     for i in range(len(reception_file_ordered)-1,-1,-1):
                         data=data+reception_file_ordered[i]
                         reception_file_ordered.pop(i)
                     del reception_file_ordered
-                    #print(f"fusion terminée")
+                    print(" fusion terminée")
                     #print(data)
                     data=json.loads(data)
                     return data
@@ -365,7 +369,9 @@ class Application:
             if "addr_server" in data:
 
                 data["addr_server"]=tuple(data["addr_server"])
+            print(data)
             if data["type"]==0: #recois un message, ajoute à la listebox, si c'est un nouveau noeud il faut l'ajouter dans sa liste des noeuds connectés
+                print("Reception: type 0")
                 if not data["addr_server"] in self.global_list_servers:
                     self.global_list_servers.append(data["addr_server"])
                     self.global_compteur[data["addr_server"]]=0
@@ -385,7 +391,7 @@ class Application:
 
 
             elif data["type"]==1: #nouvelle connection -->  envoyer jusqu'a 2 noeuds, il faut encore controler que l'on envoie pas sa propre addr
-
+                print("Reception: type 1")
             #transfert des noeuds
                 global_list_servers_reduced=[]
                 if len(self.global_list_servers)==0:#si aucun noeud(port/ip) a proposé
@@ -409,6 +415,7 @@ class Application:
                 await self.send(data_to_send,data["addr_server"])
 
             elif data["type"]==2: #reception des information pour les nouvelles connections
+                print("Reception: type 2")
                 self.salon=data["salon"]
                 self.label_username["text"]=(self.salon+" / "+self.username)
                 self.global_hist_mess=data["hist_mess"]
@@ -438,6 +445,7 @@ class Application:
                 await self.send(data, self.global_list_servers)
 
             elif data["type"]==3: #déconexions
+                print("Reception: type 3")
                 data["list_addr"].remove(self.my_addr)
                 for i in self.global_list_servers:
                     if i in data["list_addr"]:
@@ -453,18 +461,20 @@ class Application:
 
 
             elif data["type"]==4:#requete d'envoie fichier
-
+                print("Reception: type 4")
                 if not data["id_file"] in self.global_hist_files:
                     self.global_hist_files[data["id_file"]]=True
                     #envoier que l'on a pas le fichir en question
                     data2={"type":5, "id_file":data["id_file"], "addr_server":self.my_addr, "name_file":data["name_file"]}
                     await self.send(json.dumps(data2),data["addr_server"])
-            elif data["type"]==5:#envoie du fichier
+            elif data["type"]==5:#envoi du fichier
+                print("Reception: type 5")
                 with open(self.global_files_path[data["id_file"]],mode="rb") as file:
                     file=file.read()
                 file = codecs.encode(file, "base64").decode()
                 await self.send(json.dumps({"type":6,"username":self.username,"id_file":data["id_file"],"addr_server":self.my_addr, "name_file":data["name_file"],"file":file}),data["addr_server"])
             elif data["type"]==6:#reception et renvoie du fichier
+                print("Reception: type 6")
                 name_file=data["name_file"]
                 i=1
                 while True:

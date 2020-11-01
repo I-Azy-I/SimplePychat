@@ -332,7 +332,7 @@ class Menu_tk:
         lab_port_serveur= Label(menu_tk, text="Port serveur:")
         tkvar_port_serveur=StringVar()
         input_port_serveur = Entry(menu_tk, textvariable=tkvar_port_serveur, width=30)
-
+        tkvar_port_serveur.set("8888")
 
         lab_mon_ip= Label(menu_tk, text="Mon IP:")
         tkvar_mon_ip=StringVar()
