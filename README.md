@@ -1,6 +1,6 @@
 # SimplePyChat
 SimplePyChat à été développé afin d'ajouter un travail pratique dans le travail de maturité fédérale suisse fait en binôme par JulienBerthod ainsi que moi-même sur le pair à pair.
-## Concepte
+## Concept
 SimplePyChat est  une messagerie instantanée programmée en python et fonctionnant en pair à pair. Pour rejoindre un groupe il faut ainsi connaitre au moins une personne du réseau. Les messages envoyés seront transmis à travers le réseau sans que tout le monde se connaissent.
 
 ## Feature
